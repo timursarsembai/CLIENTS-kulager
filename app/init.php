@@ -62,6 +62,7 @@ require APP_DIR . '/src/PageCache.php';
 require APP_DIR . '/src/ThemeRepository.php';
 require APP_DIR . '/src/Slug.php';
 require APP_DIR . '/src/Totp.php';
+require APP_DIR . '/src/AdminLang.php';
 require APP_DIR . '/src/Leads.php';
 require APP_DIR . '/src/Counters.php';
 require APP_DIR . '/src/Router.php';

@@ -17,10 +17,10 @@ declare(strict_types=1);
  * @var bool $canZip
  */
 ?>
-<h1 class="page-title">Состояние</h1>
+<h1 class="page-title"><?= ate('Состояние') ?></h1>
 
 <div class="card">
-  <h2 class="card__title">Резервная копия</h2>
+  <h2 class="card__title"><?= ate('Резервная копия') ?></h2>
   <p class="card__lead">
     В копию попадают все тексты страниц, настройки и загруженные файлы.
     <?php if (!$canZip): ?>
@@ -34,13 +34,13 @@ declare(strict_types=1);
 
   <form method="post" action="<?= e($admin->url('backup')) ?>">
     <?= Csrf::field() ?>
-    <button type="submit" class="btn btn--primary">Скачать копию</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Скачать копию') ?></button>
     <a href="<?= e($admin->url('log')) ?>" class="btn">Журнал действий</a>
   </form>
 </div>
 
 <div class="card">
-  <h2 class="card__title">Восстановление контента из файлов</h2>
+  <h2 class="card__title"><?= ate('Восстановление контента из файлов') ?></h2>
   <p class="card__lead">
     Страницы жили в файлах <code>app/content</code> до переезда в базу — сейчас
     их там <?= e((string) $contentFiles) ?>. Переезд уже состоялся: сайт берёт
@@ -48,76 +48,70 @@ declare(strict_types=1);
   </p>
 
   <div class="notice notice--warn">
-    Эта кнопка нужна только в одном случае — <strong>вернуть страницы к исходному
-    виду</strong>, если что-то безнадёжно испорчено. Она <strong>сотрёт все правки,
-    сделанные через админку</strong>: и тексты блоков, и меню. В обычной работе
+    Эта кнопка нужна только в одном случае — <strong><?= ate('вернуть страницы к исходному виду') ?></strong>, если что-то безнадёжно испорчено. Она <strong><?= ate('сотрёт все правки, сделанные через админку') ?></strong>: и тексты блоков, и меню. В обычной работе
     она не нужна.
   </div>
 
   <form method="post" action="<?= e($admin->url('import')) ?>"
         data-confirm="Все правки, сделанные через админку, будут заменены содержимым файлов. Это не отменяется. Продолжить?">
     <?= Csrf::field() ?>
-    <button type="submit" class="btn">Вернуть контент из файлов</button>
+    <button type="submit" class="btn"><?= ate('Вернуть контент из файлов') ?></button>
   </form>
 </div>
 
 <div class="card">
-  <h2 class="card__title">Безопасность</h2>
+  <h2 class="card__title"><?= ate('Безопасность') ?></h2>
 
   <table class="table">
     <tbody>
       <tr>
-        <th>Соединение</th>
+        <th><?= ate('Соединение') ?></th>
         <td>
           <?php if ($security['https']): ?>
             <span class="pill pill--ok">HTTPS</span>
           <?php else: ?>
-            <span class="pill pill--warn">без HTTPS</span> пароли идут открытым текстом
+            <span class="pill pill--warn"><?= ate('без HTTPS') ?></span> пароли идут открытым текстом
           <?php endif; ?>
         </td>
       </tr>
       <tr>
-        <th>Отладка</th>
+        <th><?= ate('Отладка') ?></th>
         <td>
           <?php if ($security['debug']): ?>
-            <span class="pill pill--warn">включена</span> посетителям видны тексты ошибок
+            <span class="pill pill--warn"><?= ate('включена') ?></span> посетителям видны тексты ошибок
           <?php else: ?>
-            <span class="pill pill--ok">выключена</span>
+            <span class="pill pill--ok"><?= ate('выключена') ?></span>
           <?php endif; ?>
         </td>
       </tr>
       <tr>
-        <th>Вход по коду</th>
+        <th><?= ate('Вход по коду') ?></th>
         <td>
           <?php if ($security['two_factor'] > 0): ?>
             <span class="pill pill--ok">у <?= e((string) $security['two_factor']) ?> из <?= e((string) count($security['users'])) ?></span>
           <?php else: ?>
-            <span class="pill pill--warn">ни у кого</span>
+            <span class="pill pill--warn"><?= ate('ни у кого') ?></span>
             включается в разделе «Профиль»
           <?php endif; ?>
         </td>
       </tr>
       <tr>
-        <th>Неудачные входы за сутки</th>
+        <th><?= ate('Неудачные входы за сутки') ?></th>
         <td>
           <?= e((string) $security['failed']) ?>
           <?php if ($security['failed'] > 20): ?>
-            <span class="pill pill--warn">похоже на подбор</span>
+            <span class="pill pill--warn"><?= ate('похоже на подбор') ?></span>
           <?php endif; ?>
         </td>
       </tr>
     </tbody>
   </table>
 
-  <p class="muted">
-    После десяти неудачных попыток вход блокируется на 15 минут — и по адресу,
-    с которого подбирают, и по самой почте. Сессия закрывается через два часа
-    без действий и через двенадцать часов в любом случае.
-  </p>
+  <p class="muted"><?= ate('После десяти неудачных попыток вход блокируется на 15 минут — и по адресу, с которого подбирают, и по самой почте. Сессия закрывается через два часа без действий и через двенадцать часов в любом случае.') ?></p>
 </div>
 
 <div class="card">
-  <h2 class="card__title">Кэш страниц</h2>
+  <h2 class="card__title"><?= ate('Кэш страниц') ?></h2>
   <p class="card__lead">
     Готовые страницы сохраняются в <code>app/cache</code> и отдаются без обращения к базе.
     Сейчас в кэше: <?= e((string) $cachedPages) ?>. Любая правка в админке сбрасывает его сама —
@@ -126,12 +120,12 @@ declare(strict_types=1);
 
   <form method="post" action="<?= e($admin->url('cache')) ?>">
     <?= Csrf::field() ?>
-    <button type="submit" class="btn">Сбросить кэш</button>
+    <button type="submit" class="btn"><?= ate('Сбросить кэш') ?></button>
   </form>
 </div>
 
 <div class="card">
-  <h2 class="card__title">Окружение</h2>
+  <h2 class="card__title"><?= ate('Окружение') ?></h2>
 
   <table class="table">
     <tbody>
@@ -155,7 +149,7 @@ declare(strict_types=1);
           <th><?= e($name) ?></th>
           <td>
             <?php if ($state === null): ?>
-              <span class="muted">каталога нет</span>
+              <span class="muted"><?= ate('каталога нет') ?></span>
             <?php else: ?>
               <span class="pill pill--<?= $state ? 'ok' : 'error' ?>"><?= $state ? 'запись доступна' : 'нет прав на запись' ?></span>
             <?php endif; ?>
@@ -167,13 +161,13 @@ declare(strict_types=1);
 </div>
 
 <div class="card">
-  <h2 class="card__title">Миграции</h2>
+  <h2 class="card__title"><?= ate('Миграции') ?></h2>
 
   <?php if ($migrations['pending'] !== []): ?>
     <div class="notice notice--warn">Не применено: <?= e(implode(', ', $migrations['pending'])) ?></div>
     <form method="post" action="<?= e($admin->url('migrate')) ?>">
       <?= Csrf::field() ?>
-      <button type="submit" class="btn btn--primary">Применить</button>
+      <button type="submit" class="btn btn--primary"><?= ate('Применить') ?></button>
     </form>
   <?php else: ?>
     <p class="muted">Все применены: <?= e(implode(', ', $migrations['applied'])) ?></p>

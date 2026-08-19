@@ -12,7 +12,7 @@ declare(strict_types=1);
  * @var bool   $imported
  */
 ?>
-<h1 class="page-title">Меню</h1>
+<h1 class="page-title"><?= ate('Меню') ?></h1>
 
 <?php if (!$imported): ?>
   <div class="notice notice--warn">
@@ -33,8 +33,8 @@ declare(strict_types=1);
   <table class="table">
     <thead>
       <tr>
-        <th>Меню</th>
-        <th>Пунктов</th>
+        <th><?= ate('Меню') ?></th>
+        <th><?= ate('Пунктов') ?></th>
         <th></th>
       </tr>
     </thead>
@@ -52,7 +52,4 @@ declare(strict_types=1);
   </table>
 </div>
 
-<p class="muted">
-  Меню общее для шапки, бокового меню и подвала. Пункт, спрятанный из бокового
-  меню, остаётся в подвале — это отдельный флажок в каждом пункте.
-</p>
+<p class="muted"><?= ate('Меню общее для шапки, бокового меню и подвала. Пункт, спрятанный из бокового меню, остаётся в подвале — это отдельный флажок в каждом пункте.') ?></p>

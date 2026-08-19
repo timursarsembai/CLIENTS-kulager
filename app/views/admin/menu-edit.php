@@ -51,39 +51,39 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
 
       <div class="menu-item__fields">
         <label class="field">
-          <span class="field__label">Название</span>
+          <span class="field__label"><?= ate('Название') ?></span>
           <input type="text" name="<?= e($name) ?>[title]" value="<?= e((string) $item['title']) ?>" required>
         </label>
 
         <?php if ($isGroup): ?>
           <label class="field">
-            <span class="field__label">Полное название</span>
+            <span class="field__label"><?= ate('Полное название') ?></span>
             <input type="text" name="<?= e($name) ?>[full_title]" value="<?= e((string) $item['full_title']) ?>">
-            <span class="field__hint">В шапке название сокращают, в боковом меню показывают целиком.</span>
+            <span class="field__hint"><?= ate('В шапке название сокращают, в боковом меню показывают целиком.') ?></span>
           </label>
         <?php else: ?>
           <label class="field">
-            <span class="field__label">Ссылка</span>
+            <span class="field__label"><?= ate('Ссылка') ?></span>
             <?= FormBuilder::pageField($name . '[url]', (string) $item['url']) ?>
           </label>
 
           <label class="field">
-            <span class="field__label">Название в подвале</span>
+            <span class="field__label"><?= ate('Название в подвале') ?></span>
             <input type="text" name="<?= e($name) ?>[footer_title]" value="<?= e((string) ($item['footer_title'] ?? '')) ?>"
                    placeholder="<?= e((string) $item['title']) ?>">
-            <span class="field__hint">Пусто — в подвале то же название. Заполните, если там нужно другое.</span>
+            <span class="field__hint"><?= ate('Пусто — в подвале то же название. Заполните, если там нужно другое.') ?></span>
           </label>
 
           <label class="field field--check">
             <input type="hidden" name="<?= e($name) ?>[in_drawer]" value="0">
             <input type="checkbox" name="<?= e($name) ?>[in_drawer]" value="1"<?= $item['in_drawer'] ? ' checked' : '' ?>>
-            <span class="field__label">Показывать в боковом меню</span>
+            <span class="field__label"><?= ate('Показывать в боковом меню') ?></span>
           </label>
 
           <label class="field field--check">
             <input type="hidden" name="<?= e($name) ?>[in_footer]" value="0">
             <input type="checkbox" name="<?= e($name) ?>[in_footer]" value="1"<?= ($item['in_footer'] ?? 1) ? ' checked' : '' ?>>
-            <span class="field__label">Показывать в подвале</span>
+            <span class="field__label"><?= ate('Показывать в подвале') ?></span>
           </label>
         <?php endif; ?>
       </div>
@@ -109,7 +109,7 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
 
 <?php if ($items === []): ?>
   <div class="card">
-    <p class="muted">В этом меню пока нет пунктов.</p>
+    <p class="muted"><?= ate('В этом меню пока нет пунктов.') ?></p>
   </div>
 <?php endif; ?>
 
@@ -128,7 +128,7 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
             <?php endforeach; ?>
 
             <details class="menu-add">
-              <summary>Добавить отрасль в группу</summary>
+              <summary><?= ate('Добавить отрасль в группу') ?></summary>
               <div class="menu-add__body">
                 <input type="text" form="menu-add-<?= e((string) $group['row']['id']) ?>"
                        name="title" placeholder="Название" required>
@@ -149,7 +149,7 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
   </div>
 
   <div class="block-form__actions">
-    <button type="submit" class="btn btn--primary">Сохранить</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
     <a href="<?= e($admin->url('menu/' . $locale)) ?>" class="btn">К списку меню</a>
   </div>
 </form>
@@ -163,7 +163,7 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
     <?php if (!$grouped): ?>
       <input type="text" name="url" placeholder="o-kompanii">
     <?php endif; ?>
-    <button type="submit" class="btn">Добавить</button>
+    <button type="submit" class="btn"><?= ate('Добавить') ?></button>
   </form>
 </div>
 

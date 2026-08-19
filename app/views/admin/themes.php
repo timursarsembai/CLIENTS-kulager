@@ -9,20 +9,17 @@ declare(strict_types=1);
  * @var string $current
  */
 ?>
-<h1 class="page-title">Оформление</h1>
+<h1 class="page-title"><?= ate('Оформление') ?></h1>
 
-<p class="lead-text">
-  Посетитель может переключить тему сам — здесь задаётся, какая открывается
-  по умолчанию, и правятся цвета каждой темы.
-</p>
+<p class="lead-text"><?= ate('Посетитель может переключить тему сам — здесь задаётся, какая открывается по умолчанию, и правятся цвета каждой темы.') ?></p>
 
 <div class="card">
   <table class="table">
     <thead>
       <tr>
         <th></th>
-        <th>Тема</th>
-        <th>Тип</th>
+        <th><?= ate('Тема') ?></th>
+        <th><?= ate('Тип') ?></th>
         <th></th>
       </tr>
     </thead>
@@ -38,7 +35,7 @@ declare(strict_types=1);
           <td>
             <?= e((string) $theme['name']) ?>
             <?php if ($isCurrent): ?>
-              <span class="pill pill--ok">по умолчанию</span>
+              <span class="pill pill--ok"><?= ate('по умолчанию') ?></span>
             <?php endif; ?>
           </td>
           <td class="muted"><?= $theme['is_builtin'] ? 'встроенная' : 'своя' ?></td>
@@ -49,7 +46,7 @@ declare(strict_types=1);
               <form method="post" action="<?= e($admin->url('themes/default')) ?>" class="inline-form">
                 <?= Csrf::field() ?>
                 <input type="hidden" name="theme_key" value="<?= e((string) $theme['theme_key']) ?>">
-                <button type="submit" class="link">Сделать основной</button>
+                <button type="submit" class="link"><?= ate('Сделать основной') ?></button>
               </form>
             <?php endif; ?>
 
@@ -57,7 +54,7 @@ declare(strict_types=1);
               <form method="post" action="<?= e($admin->url('themes/' . $theme['id'] . '/delete')) ?>"
                     class="inline-form" data-confirm="Удалить тему?">
                 <?= Csrf::field() ?>
-                <button type="submit" class="link link--danger">Удалить</button>
+                <button type="submit" class="link link--danger"><?= ate('Удалить') ?></button>
               </form>
             <?php endif; ?>
           </td>
@@ -68,11 +65,8 @@ declare(strict_types=1);
 </div>
 
 <div class="card">
-  <h2 class="card__title">Новая тема</h2>
-  <p class="card__lead">
-    Новая тема создаётся копией существующей — останется поправить цвета,
-    а не заполнять три десятка значений с нуля.
-  </p>
+  <h2 class="card__title"><?= ate('Новая тема') ?></h2>
+  <p class="card__lead"><?= ate('Новая тема создаётся копией существующей — останется поправить цвета, а не заполнять три десятка значений с нуля.') ?></p>
 
   <form method="post" action="<?= e($admin->url('themes/add')) ?>" class="menu-add__body">
     <?= Csrf::field() ?>
@@ -85,6 +79,6 @@ declare(strict_types=1);
       <?php endforeach; ?>
     </select>
 
-    <button type="submit" class="btn btn--primary">Создать</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Создать') ?></button>
   </form>
 </div>

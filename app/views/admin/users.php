@@ -10,13 +10,9 @@ declare(strict_types=1);
  * @var array $created почта и пароль только что заведённого — показываются раз
  */
 ?>
-<h1 class="page-title">Пользователи</h1>
+<h1 class="page-title"><?= ate('Пользователи') ?></h1>
 
-<p class="lead-text">
-  Администратор меняет всё, включая настройки сайта, перенос контента и эти
-  самые учётные записи. Редактор работает только с контентом: страницы, блоки,
-  меню, медиатека.
-</p>
+<p class="lead-text"><?= ate('Администратор меняет всё, включая настройки сайта, перенос контента и эти самые учётные записи. Редактор работает только с контентом: страницы, блоки, меню, медиатека.') ?></p>
 
 <?php if ($created !== []): ?>
   <div class="notice notice--warn">
@@ -31,9 +27,9 @@ declare(strict_types=1);
   <table class="table">
     <thead>
       <tr>
-        <th>Почта</th>
-        <th>Роль</th>
-        <th>Вход</th>
+        <th><?= ate('Почта') ?></th>
+        <th><?= ate('Роль') ?></th>
+        <th><?= ate('Вход') ?></th>
         <th></th>
       </tr>
     </thead>
@@ -47,8 +43,8 @@ declare(strict_types=1);
         <tr>
           <td>
             <?= e((string) $user['email']) ?>
-            <?php if ($isMe): ?><span class="pill pill--ok">это вы</span><?php endif; ?>
-            <?php if (!$active): ?><span class="pill pill--draft">доступ закрыт</span><?php endif; ?>
+            <?php if ($isMe): ?><span class="pill pill--ok"><?= ate('это вы') ?></span><?php endif; ?>
+            <?php if (!$active): ?><span class="pill pill--draft"><?= ate('доступ закрыт') ?></span><?php endif; ?>
 
             <?php if (($user['name'] ?? '') !== '' && $user['name'] !== $user['email']): ?>
               <div class="muted"><?= e((string) $user['name']) ?></div>
@@ -62,7 +58,7 @@ declare(strict_types=1);
                 <option value="editor"<?= $user['role'] === 'editor' ? ' selected' : '' ?>>Редактор</option>
                 <option value="admin"<?= $user['role'] === 'admin' ? ' selected' : '' ?>>Администратор</option>
               </select>
-              <button type="submit" class="btn btn--small">Сменить</button>
+              <button type="submit" class="btn btn--small"><?= ate('Сменить') ?></button>
             </form>
           </td>
 
@@ -70,11 +66,11 @@ declare(strict_types=1);
             <?php if (($user['last_login_at'] ?? null) !== null): ?>
               <?= e(date('d.m.Y H:i', strtotime((string) $user['last_login_at']))) ?>
             <?php else: ?>
-              <span class="muted">ни разу</span>
+              <span class="muted"><?= ate('ни разу') ?></span>
             <?php endif; ?>
 
             <?php if (!empty($user['totp_enabled'])): ?>
-              <div><span class="pill pill--ok">вход по коду</span></div>
+              <div><span class="pill pill--ok"><?= ate('вход по коду') ?></span></div>
             <?php endif; ?>
           </td>
 
@@ -82,14 +78,14 @@ declare(strict_types=1);
             <form method="post" action="<?= e($admin->url('users/' . $id . '/password')) ?>" class="inline-form"
                   data-confirm="Сбросить пароль? Нынешний перестанет работать.">
               <?= Csrf::field() ?>
-              <button type="submit" class="link">Сбросить пароль</button>
+              <button type="submit" class="link"><?= ate('Сбросить пароль') ?></button>
             </form>
 
             <?php if (!empty($user['totp_enabled'])): ?>
               <form method="post" action="<?= e($admin->url('users/' . $id . '/twofa')) ?>" class="inline-form"
                     data-confirm="Отключить вход по коду? Понадобится, если человек потерял телефон.">
                 <?= Csrf::field() ?>
-                <button type="submit" class="link">Сбросить код</button>
+                <button type="submit" class="link"><?= ate('Сбросить код') ?></button>
               </form>
             <?php endif; ?>
 
@@ -102,7 +98,7 @@ declare(strict_types=1);
               <form method="post" action="<?= e($admin->url('users/' . $id . '/delete')) ?>" class="inline-form"
                     data-confirm="Удалить пользователя? Его записи в журнале останутся.">
                 <?= Csrf::field() ?>
-                <button type="submit" class="link link--danger">Удалить</button>
+                <button type="submit" class="link link--danger"><?= ate('Удалить') ?></button>
               </form>
             <?php endif; ?>
           </td>
@@ -113,11 +109,8 @@ declare(strict_types=1);
 </div>
 
 <div class="card">
-  <h2 class="card__title">Новый пользователь</h2>
-  <p class="card__lead">
-    Пароль придумает система — он покажется один раз, сразу после создания.
-    Почта служит логином.
-  </p>
+  <h2 class="card__title"><?= ate('Новый пользователь') ?></h2>
+  <p class="card__lead"><?= ate('Пароль придумает система — он покажется один раз, сразу после создания. Почта служит логином.') ?></p>
 
   <form method="post" action="<?= e($admin->url('users/add')) ?>" class="menu-add__body">
     <?= Csrf::field() ?>
@@ -126,10 +119,10 @@ declare(strict_types=1);
     <input type="text" name="name" placeholder="Имя (необязательно)">
 
     <select name="role">
-      <option value="editor">Редактор</option>
-      <option value="admin">Администратор</option>
+      <option value="editor"><?= ate('Редактор') ?></option>
+      <option value="admin"><?= ate('Администратор') ?></option>
     </select>
 
-    <button type="submit" class="btn btn--primary">Завести</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Завести') ?></button>
   </form>
 </div>

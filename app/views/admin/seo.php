@@ -22,18 +22,15 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
 
 <?php if ($noindex): ?>
   <div class="notice notice--warn">
-    <strong>Сайт закрыт от индексации.</strong> Во все страницы добавлен
+    <strong><?= ate('Сайт закрыт от индексации.') ?></strong> Во все страницы добавлен
     <code>noindex</code>, robots.txt запрещает обход, карта сайта пустая.
     Не забудьте снять галочку перед запуском.
   </div>
 <?php endif; ?>
 
 <div class="card card--form">
-  <h2 class="card__title">Общие настройки</h2>
-  <p class="card__lead">
-    Подставляются страницам, у которых своё значение не заполнено. Заголовок
-    и описание каждой страницы правятся в её настройках.
-  </p>
+  <h2 class="card__title"><?= ate('Общие настройки') ?></h2>
+  <p class="card__lead"><?= ate('Подставляются страницам, у которых своё значение не заполнено. Заголовок и описание каждой страницы правятся в её настройках.') ?></p>
 
   <form method="post" action="<?= e($admin->url('seo')) ?>">
     <?= Csrf::field() ?>
@@ -72,17 +69,13 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
       <?php endif; ?>
     <?php endforeach; ?>
 
-    <button type="submit" class="btn btn--primary">Сохранить</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
   </form>
 </div>
 
 <div class="card card--form">
-  <h2 class="card__title">Счётчики и аналитика</h2>
-  <p class="card__lead">
-    Для Яндекс.Метрики и Google Analytics достаточно номера — код соберём сами
-    и поставим куда нужно. Остальные сервисы вставляются кодом как есть.
-    Редактору счётчики не подключаются: собственные заходы считать незачем.
-  </p>
+  <h2 class="card__title"><?= ate('Счётчики и аналитика') ?></h2>
+  <p class="card__lead"><?= ate('Для Яндекс.Метрики и Google Analytics достаточно номера — код соберём сами и поставим куда нужно. Остальные сервисы вставляются кодом как есть. Редактору счётчики не подключаются: собственные заходы считать незачем.') ?></p>
 
   <form method="post" action="<?= e($admin->url('seo')) ?>">
     <?= Csrf::field() ?>
@@ -102,28 +95,25 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
       </label>
     <?php endforeach; ?>
 
-    <button type="submit" class="btn btn--primary">Сохранить счётчики</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Сохранить счётчики') ?></button>
   </form>
 </div>
 
 <div class="card">
   <div class="card__head">
-    <h2 class="card__title">Страницы</h2>
+    <h2 class="card__title"><?= ate('Страницы') ?></h2>
     <span class="muted">с замечаниями: <?= e((string) count($withIssues)) ?> из <?= e((string) count($pages)) ?></span>
   </div>
 
-  <p class="card__lead">
-    Заголовок читается в выдаче примерно до 70 знаков, описание — до 200.
-    Длиннее не ошибка, но поисковик обрежет.
-  </p>
+  <p class="card__lead"><?= ate('Заголовок читается в выдаче примерно до 70 знаков, описание — до 200. Длиннее не ошибка, но поисковик обрежет.') ?></p>
 
   <table class="table">
     <thead>
       <tr>
-        <th>Адрес</th>
-        <th>Заголовок</th>
-        <th>Описание</th>
-        <th>Замечания</th>
+        <th><?= ate('Адрес') ?></th>
+        <th><?= ate('Заголовок') ?></th>
+        <th><?= ate('Описание') ?></th>
+        <th><?= ate('Замечания') ?></th>
       </tr>
     </thead>
     <tbody>
@@ -145,7 +135,7 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
           </td>
           <td>
             <?php if ($row['issues'] === []): ?>
-              <span class="pill pill--ok">в порядке</span>
+              <span class="pill pill--ok"><?= ate('в порядке') ?></span>
             <?php else: ?>
               <?php foreach ($row['issues'] as $issue): ?>
                 <span class="pill pill--warn"><?= e($issue) ?></span>
@@ -159,11 +149,8 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
 </div>
 
 <div class="card">
-  <h2 class="card__title">Служебные файлы</h2>
-  <p class="card__lead">
-    Собираются на лету из того, что опубликовано прямо сейчас — обновлять
-    вручную не нужно.
-  </p>
+  <h2 class="card__title"><?= ate('Служебные файлы') ?></h2>
+  <p class="card__lead"><?= ate('Собираются на лету из того, что опубликовано прямо сейчас — обновлять вручную не нужно.') ?></p>
 
   <div class="btn-row">
     <a class="btn" href="/robots.txt" target="_blank" rel="noopener">robots.txt ↗</a>

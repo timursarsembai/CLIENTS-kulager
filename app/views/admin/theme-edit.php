@@ -25,18 +25,18 @@ declare(strict_types=1);
 
   <div class="card">
     <label class="field">
-      <span class="field__label">Название</span>
+      <span class="field__label"><?= ate('Название') ?></span>
       <input type="text" name="name" value="<?= e((string) $theme['name']) ?>" required>
     </label>
 
     <div class="theme-swatch">
       <label class="field">
-        <span class="field__label">Кружок: фон</span>
+        <span class="field__label"><?= ate('Кружок: фон') ?></span>
         <input type="color" name="swatch_bg" value="<?= e((string) $theme['swatch_bg'] ?: '#000000') ?>">
       </label>
 
       <label class="field">
-        <span class="field__label">Кружок: акцент</span>
+        <span class="field__label"><?= ate('Кружок: акцент') ?></span>
         <input type="color" name="swatch_accent" value="<?= e((string) $theme['swatch_accent'] ?: '#ffffff') ?>">
       </label>
     </div>
@@ -95,40 +95,40 @@ declare(strict_types=1);
     </div>
 
     <div class="card theme-preview-card">
-      <h2 class="card__title">Предпросмотр</h2>
+      <h2 class="card__title"><?= ate('Предпросмотр') ?></h2>
 
       <div class="theme-preview" data-theme-preview>
         <div class="theme-preview__header">
           <span class="theme-preview__logo">KULAGER</span>
-          <span class="theme-preview__nav">Модели · Отрасли · Компания</span>
+          <span class="theme-preview__nav"><?= ate('Модели · Отрасли · Компания') ?></span>
         </div>
 
         <div class="theme-preview__body">
-          <div class="theme-preview__kicker">Надзаголовок</div>
-          <div class="theme-preview__title">Заголовок страницы</div>
+          <div class="theme-preview__kicker"><?= ate('Надзаголовок') ?></div>
+          <div class="theme-preview__title"><?= ate('Заголовок страницы') ?></div>
           <p class="theme-preview__text">
-            Обычный текст блока и <a href="#" onclick="return false">ссылка внутри него</a>.
+            Обычный текст блока и <a href="#" onclick="return false"><?= ate('ссылка внутри него') ?></a>.
             Приглушённая строка — подпись под карточкой.
           </p>
 
           <div class="theme-preview__row">
-            <span class="theme-preview__btn">Кнопка</span>
-            <span class="theme-preview__btn theme-preview__btn--ghost">Контурная</span>
+            <span class="theme-preview__btn"><?= ate('Кнопка') ?></span>
+            <span class="theme-preview__btn theme-preview__btn--ghost"><?= ate('Контурная') ?></span>
           </div>
 
           <div class="theme-preview__card">
-            <div class="theme-preview__card-title">Карточка</div>
-            <div class="theme-preview__muted">Текст на поверхности карточки</div>
+            <div class="theme-preview__card-title"><?= ate('Карточка') ?></div>
+            <div class="theme-preview__muted"><?= ate('Текст на поверхности карточки') ?></div>
           </div>
         </div>
       </div>
 
-      <p class="muted">Предпросмотр обновляется сразу, сохранять для проверки не нужно.</p>
+      <p class="muted"><?= ate('Предпросмотр обновляется сразу, сохранять для проверки не нужно.') ?></p>
     </div>
   </div>
 
   <div class="block-form__actions">
-    <button type="submit" class="btn btn--primary">Сохранить</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
     <a href="<?= e($admin->url('themes')) ?>" class="btn">К списку тем</a>
   </div>
 </form>

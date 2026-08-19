@@ -19,13 +19,10 @@ $labels = [
     'spam'    => 'Спам',
 ];
 ?>
-<h1 class="page-title">Заявки</h1>
+<h1 class="page-title"><?= ate('Заявки') ?></h1>
 
 <?php if ($isAdmin && (!$telegram['token'] || $telegram['chat'] === '')): ?>
-  <div class="notice notice--warn">
-    Уведомления в телеграм не настроены — заявки будут копиться только здесь.
-    Настройка внизу страницы.
-  </div>
+  <div class="notice notice--warn"><?= ate('Уведомления в телеграм не настроены — заявки будут копиться только здесь. Настройка внизу страницы.') ?></div>
 <?php endif; ?>
 
 <div class="btn-row">
@@ -42,15 +39,15 @@ $labels = [
 
 <div class="card">
   <?php if ($leads === []): ?>
-    <p class="muted">Заявок пока нет.</p>
+    <p class="muted"><?= ate('Заявок пока нет.') ?></p>
   <?php else: ?>
     <table class="table">
       <thead>
         <tr>
-          <th>Когда</th>
-          <th>Кто</th>
-          <th>Сообщение</th>
-          <th>Состояние</th>
+          <th><?= ate('Когда') ?></th>
+          <th><?= ate('Кто') ?></th>
+          <th><?= ate('Сообщение') ?></th>
+          <th><?= ate('Состояние') ?></th>
           <th></th>
         </tr>
       </thead>
@@ -79,7 +76,7 @@ $labels = [
 
               <?php if (!$lead['notified']): ?>
                 <div>
-                  <span class="pill pill--warn">не ушло в телеграм</span>
+                  <span class="pill pill--warn"><?= ate('не ушло в телеграм') ?></span>
                   <?php if (($lead['notify_error'] ?? '') !== ''): ?>
                     <span class="muted"><?= e((string) $lead['notify_error']) ?></span>
                   <?php endif; ?>
@@ -95,7 +92,7 @@ $labels = [
                     <option value="<?= e($key) ?>"<?= $lead['status'] === $key ? ' selected' : '' ?>><?= e($label) ?></option>
                   <?php endforeach; ?>
                 </select>
-                <button type="submit" class="btn btn--small">Сохранить</button>
+                <button type="submit" class="btn btn--small"><?= ate('Сохранить') ?></button>
               </form>
             </td>
 
@@ -103,14 +100,14 @@ $labels = [
               <?php if (!$lead['notified']): ?>
                 <form method="post" action="<?= e($admin->url('leads/' . $lead['id'] . '/resend')) ?>" class="inline-form">
                   <?= Csrf::field() ?>
-                  <button type="submit" class="link">Отправить в телеграм</button>
+                  <button type="submit" class="link"><?= ate('Отправить в телеграм') ?></button>
                 </form>
               <?php endif; ?>
 
               <form method="post" action="<?= e($admin->url('leads/' . $lead['id'] . '/delete')) ?>"
                     class="inline-form" data-confirm="Удалить заявку?">
                 <?= Csrf::field() ?>
-                <button type="submit" class="link link--danger">Удалить</button>
+                <button type="submit" class="link link--danger"><?= ate('Удалить') ?></button>
               </form>
             </td>
           </tr>
@@ -122,43 +119,37 @@ $labels = [
 
 <?php if ($isAdmin): ?>
   <div class="card card--form">
-    <h2 class="card__title">Уведомления в телеграм</h2>
-    <p class="card__lead">
-      Заявка сначала сохраняется здесь и только потом уходит в телеграм —
-      если бот недоступен, обращение не потеряется, а в списке будет пометка.
-    </p>
+    <h2 class="card__title"><?= ate('Уведомления в телеграм') ?></h2>
+    <p class="card__lead"><?= ate('Заявка сначала сохраняется здесь и только потом уходит в телеграм — если бот недоступен, обращение не потеряется, а в списке будет пометка.') ?></p>
 
     <form method="post" action="<?= e($admin->url('leads/telegram')) ?>">
       <?= Csrf::field() ?>
 
       <label class="field">
-        <span class="field__label">Токен бота</span>
+        <span class="field__label"><?= ate('Токен бота') ?></span>
         <input type="text" name="telegram_token" value=""
                placeholder="<?= $telegram['token'] ? 'сохранён — оставьте пустым, чтобы не менять' : '123456:AA…' ?>">
-        <span class="field__hint">Выдаёт @BotFather. Показывать его здесь мы не будем.</span>
+        <span class="field__hint"><?= ate('Выдаёт @BotFather. Показывать его здесь мы не будем.') ?></span>
       </label>
 
       <label class="field">
-        <span class="field__label">Куда слать</span>
+        <span class="field__label"><?= ate('Куда слать') ?></span>
         <input type="text" name="telegram_chat" value="<?= e((string) $telegram['chat']) ?>" placeholder="123456789">
-        <span class="field__hint">
-          Идентификатор чата. Напишите боту «/start» (или добавьте его в группу)
-          и нажмите «Определить чат».
-        </span>
+        <span class="field__hint"><?= ate('Идентификатор чата. Напишите боту «/start» (или добавьте его в группу) и нажмите «Определить чат».') ?></span>
       </label>
 
-      <button type="submit" class="btn btn--primary">Сохранить</button>
+      <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
     </form>
 
     <div class="btn-row" style="margin-top: 16px">
       <form method="post" action="<?= e($admin->url('leads/detect')) ?>">
         <?= Csrf::field() ?>
-        <button type="submit" class="btn">Определить чат</button>
+        <button type="submit" class="btn"><?= ate('Определить чат') ?></button>
       </form>
 
       <form method="post" action="<?= e($admin->url('leads/test')) ?>">
         <?= Csrf::field() ?>
-        <button type="submit" class="btn">Отправить проверочное сообщение</button>
+        <button type="submit" class="btn"><?= ate('Отправить проверочное сообщение') ?></button>
       </form>
     </div>
   </div>

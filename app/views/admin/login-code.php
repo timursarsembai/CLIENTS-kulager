@@ -9,11 +9,8 @@ declare(strict_types=1);
  */
 ?>
 <div class="card card--form">
-  <h1 class="card__title">Код подтверждения</h1>
-  <p class="card__lead">
-    Откройте приложение-аутентификатор и введите шестизначный код для KULAGER.
-    Вместо него подойдёт любой из запасных кодов.
-  </p>
+  <h1 class="card__title"><?= ate('Код подтверждения') ?></h1>
+  <p class="card__lead"><?= ate('Откройте приложение-аутентификатор и введите шестизначный код для KULAGER. Вместо него подойдёт любой из запасных кодов.') ?></p>
 
   <?php if ($error): ?>
     <div class="notice notice--error"><?= e($error) ?></div>
@@ -23,11 +20,11 @@ declare(strict_types=1);
     <?= Csrf::field() ?>
 
     <label class="field">
-      <span class="field__label">Код</span>
+      <span class="field__label"><?= ate('Код') ?></span>
       <input type="text" name="code" inputmode="numeric" autocomplete="one-time-code"
              pattern="[0-9A-Za-z ]{6,20}" required autofocus>
     </label>
 
-    <button type="submit" class="btn btn--primary">Подтвердить</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Подтвердить') ?></button>
   </form>
 </div>

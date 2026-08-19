@@ -14,7 +14,7 @@ declare(strict_types=1);
  * @var string $limit
  */
 ?>
-<h1 class="page-title">Медиатека</h1>
+<h1 class="page-title"><?= ate('Медиатека') ?></h1>
 
 <?php if (!$writable): ?>
   <div class="notice notice--error">
@@ -24,19 +24,17 @@ declare(strict_types=1);
 <?php endif; ?>
 
 <?php if (!$gd): ?>
-  <div class="notice notice--warn">
-    Расширение GD не установлено: файлы будут сохраняться как есть, без уменьшенных копий.
-  </div>
+  <div class="notice notice--warn"><?= ate('Расширение GD не установлено: файлы будут сохраняться как есть, без уменьшенных копий.') ?></div>
 <?php endif; ?>
 
 <div class="card">
-  <h2 class="card__title">Загрузить</h2>
+  <h2 class="card__title"><?= ate('Загрузить') ?></h2>
 
   <form method="post" action="<?= e($admin->url('media/upload')) ?>" enctype="multipart/form-data">
     <?= Csrf::field() ?>
 
     <label class="field">
-      <span class="field__label">Файлы</span>
+      <span class="field__label"><?= ate('Файлы') ?></span>
       <input type="file" name="files[]" multiple accept="image/jpeg,image/png,image/webp,image/svg+xml" required>
       <span class="field__hint">
         JPEG, PNG, WebP или SVG. Не больше <?= e((string) $limit) ?> за файл.
@@ -44,18 +42,18 @@ declare(strict_types=1);
       </span>
     </label>
 
-    <button type="submit" class="btn btn--primary">Загрузить</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Загрузить') ?></button>
   </form>
 </div>
 
 <div class="card">
   <div class="card__head">
-    <h2 class="card__title">Файлы</h2>
+    <h2 class="card__title"><?= ate('Файлы') ?></h2>
     <span class="muted"><?= e((string) count($items)) ?></span>
   </div>
 
   <?php if ($items === []): ?>
-    <p class="muted">Пока пусто. Загрузите первые изображения.</p>
+    <p class="muted"><?= ate('Пока пусто. Загрузите первые изображения.') ?></p>
   <?php else: ?>
     <div class="media-grid">
       <?php foreach ($items as $item): ?>
@@ -73,29 +71,29 @@ declare(strict_types=1);
             </div>
 
             <details class="media__details">
-              <summary>Описание</summary>
+              <summary><?= ate('Описание') ?></summary>
 
               <form method="post" action="<?= e($admin->url('media/' . $item['id'] . '/alt')) ?>">
                 <?= Csrf::field() ?>
 
                 <label class="field">
-                  <span class="field__label">Описание (рус)</span>
+                  <span class="field__label"><?= ate('Описание (рус)') ?></span>
                   <input type="text" name="alt_ru" value="<?= e((string) $item['alt_ru']) ?>">
                 </label>
 
                 <label class="field">
-                  <span class="field__label">Описание (қаз)</span>
+                  <span class="field__label"><?= ate('Описание (қаз)') ?></span>
                   <input type="text" name="alt_kk" value="<?= e((string) $item['alt_kk']) ?>">
                 </label>
 
-                <button type="submit" class="btn btn--small">Сохранить</button>
+                <button type="submit" class="btn btn--small"><?= ate('Сохранить') ?></button>
               </form>
             </details>
 
             <form method="post" action="<?= e($admin->url('media/' . $item['id'] . '/delete')) ?>"
                   data-confirm="Удалить файл вместе с уменьшенными копиями?">
               <?= Csrf::field() ?>
-              <button type="submit" class="link link--danger">Удалить</button>
+              <button type="submit" class="link link--danger"><?= ate('Удалить') ?></button>
             </form>
           </figcaption>
         </figure>

@@ -26,15 +26,15 @@ $labels = [
 
 $pages = (int) ceil($total / $perPage);
 ?>
-<h1 class="page-title">Журнал действий</h1>
+<h1 class="page-title"><?= ate('Журнал действий') ?></h1>
 
 <div class="card">
   <?php if ($rows === []): ?>
-    <p class="muted">Пока пусто.</p>
+    <p class="muted"><?= ate('Пока пусто.') ?></p>
   <?php else: ?>
     <table class="table">
       <thead>
-        <tr><th>Когда</th><th>Что</th><th>Где</th><th>Кто</th></tr>
+        <tr><th><?= ate('Когда') ?></th><th><?= ate('Что') ?></th><th><?= ate('Где') ?></th><th><?= ate('Кто') ?></th></tr>
       </thead>
       <tbody>
       <?php foreach ($rows as $row): ?>

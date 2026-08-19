@@ -4,7 +4,7 @@ declare(strict_types=1);
 /** @var bool $configured */
 ?>
 <div class="card card--form">
-  <h1 class="card__title">Нет связи с базой данных</h1>
+  <h1 class="card__title"><?= ate('Нет связи с базой данных') ?></h1>
 
   <?php if (!$configured): ?>
     <p class="card__lead">
@@ -18,5 +18,5 @@ declare(strict_types=1);
     </p>
   <?php endif; ?>
 
-  <p class="muted">Публичная часть сайта при этом работает: страницы отдаются из файлов.</p>
+  <p class="muted"><?= ate('Публичная часть сайта при этом работает: страницы отдаются из файлов.') ?></p>
 </div>

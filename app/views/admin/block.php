@@ -45,12 +45,12 @@ $base = $admin->url('page/' . $page['id'] . '/' . $locale);
   <?= FormBuilder::fields($definition['fields'], $data) ?>
 
   <div class="block-form__actions">
-    <button type="submit" class="btn btn--primary">Сохранить</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
     <a href="<?= e($base) ?>" class="btn">Отмена</a>
 
     <span class="block-form__spacer"></span>
 
-    <button type="submit" form="block-delete" class="btn btn--danger">Удалить блок</button>
+    <button type="submit" form="block-delete" class="btn btn--danger"><?= ate('Удалить блок') ?></button>
   </div>
 </form>
 

@@ -64,7 +64,7 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
   <div class="editor__main">
     <div class="card">
       <div class="card__head">
-        <h2 class="card__title">Блоки страницы</h2>
+        <h2 class="card__title"><?= ate('Блоки страницы') ?></h2>
         <span class="muted"><?= e((string) count($blocks)) ?></span>
       </div>
 
@@ -93,16 +93,13 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
             <button type="submit" class="btn btn--small">
               <?= $blocks === [] ? 'Скопировать блоки из основного языка' : 'Заново скопировать из основного языка' ?>
             </button>
-            <span class="field__hint">
-              Блоки этой версии будут заменены копией основного языка — перевод придётся набрать заново.
-              Если нажали случайно, вернёт кнопка «Отменить» вверху страницы.
-            </span>
+            <span class="field__hint"><?= ate('Блоки этой версии будут заменены копией основного языка — перевод придётся набрать заново. Если нажали случайно, вернёт кнопка «Отменить» вверху страницы.') ?></span>
           </form>
         </div>
       <?php endif; ?>
 
       <?php if ($blocks === []): ?>
-        <p class="muted">Блоков пока нет. Добавьте первый из библиотеки справа.</p>
+        <p class="muted"><?= ate('Блоков пока нет. Добавьте первый из библиотеки справа.') ?></p>
       <?php else: ?>
         <p class="hint-line">Перетащите блок за <span class="grip">⋮⋮</span>, чтобы поменять порядок — он сохранится сам.</p>
 
@@ -125,7 +122,7 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
               </a>
 
               <span class="block__actions">
-                <?php if (!$visible): ?><span class="pill pill--draft">скрыт</span><?php endif; ?>
+                <?php if (!$visible): ?><span class="pill pill--draft"><?= ate('скрыт') ?></span><?php endif; ?>
 
                 <form method="post" action="<?= e($base . '/block/' . $id . '/toggle') ?>">
                   <?= Csrf::field() ?>
@@ -149,7 +146,7 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
     </div>
 
     <div class="card">
-      <h2 class="card__title">Настройки страницы</h2>
+      <h2 class="card__title"><?= ate('Настройки страницы') ?></h2>
 
       <form method="post" action="<?= e($base . '/settings') ?>">
         <?= Csrf::field() ?>
@@ -158,83 +155,80 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
           <span class="field__label">Заголовок страницы <i>обязательно</i></span>
           <input type="text" name="title" value="<?= e((string) ($localeRow['title'] ?? '')) ?>"
                  data-slug-source required>
-          <span class="field__hint">Виден во вкладке браузера и в результатах поиска.</span>
+          <span class="field__hint"><?= ate('Виден во вкладке браузера и в результатах поиска.') ?></span>
         </label>
 
         <?php /* Адрес идёт следом за заголовком: он из него и получается */ ?>
         <label class="field">
-          <span class="field__label">Адрес</span>
+          <span class="field__label"><?= ate('Адрес') ?></span>
 
           <span class="slug-field">
             <input type="text" name="slug" value="<?= e($slug) ?>" placeholder="otrasli/teplicy"
                    data-slug-input>
-            <button type="button" class="btn btn--small" data-slug-make>Из заголовка</button>
+            <button type="button" class="btn btn--small" data-slug-make><?= ate('Из заголовка') ?></button>
           </span>
 
-          <span class="field__hint">
-            Заполняется сам из заголовка — кириллица переводится в латиницу.
-            Свой адрес тоже можно вписать: без слэша в начале, пусто — главная страница.
-          </span>
+          <span class="field__hint"><?= ate('Заполняется сам из заголовка — кириллица переводится в латиницу. Свой адрес тоже можно вписать: без слэша в начале, пусто — главная страница.') ?></span>
         </label>
 
         <label class="field">
-          <span class="field__label">Описание для поиска</span>
+          <span class="field__label"><?= ate('Описание для поиска') ?></span>
           <textarea name="description" rows="3"><?= e((string) ($localeRow['description'] ?? '')) ?></textarea>
         </label>
 
         <label class="field">
-          <span class="field__label">Картинка для соцсетей</span>
+          <span class="field__label"><?= ate('Картинка для соцсетей') ?></span>
           <?= FormBuilder::imageField('og_image', (string) ($localeRow['og_image'] ?? '')) ?>
-          <span class="field__hint">Пусто — возьмётся общая из раздела «SEO».</span>
+          <span class="field__hint"><?= ate('Пусто — возьмётся общая из раздела «SEO».') ?></span>
         </label>
 
         <label class="field field--check">
           <input type="hidden" name="noindex" value="0">
           <input type="checkbox" name="noindex" value="1"<?= !empty($localeRow['noindex']) ? ' checked' : '' ?>>
-          <span class="field__label">Закрыть от индексации</span>
-          <span class="field__hint">Страница останется на сайте, но пропадёт из карты сайта и поиска.</span>
+          <span class="field__label"><?= ate('Закрыть от индексации') ?></span>
+          <span class="field__hint"><?= ate('Страница останется на сайте, но пропадёт из карты сайта и поиска.') ?></span>
         </label>
 
         <label class="field">
-          <span class="field__label">Канонический адрес</span>
+          <span class="field__label"><?= ate('Канонический адрес') ?></span>
           <input type="text" name="canonical" value="<?= e((string) ($localeRow['canonical'] ?? '')) ?>"
                  placeholder="otrasli/sklady">
-          <span class="field__hint">Заполняют, когда страница дублирует другую: поисковик засчитает ту.</span>
+          <span class="field__hint"><?= ate('Заполняют, когда страница дублирует другую: поисковик засчитает ту.') ?></span>
         </label>
 
         <fieldset class="group">
-          <legend>Плавающая панель внизу</legend>
-          <p class="group__hint">Появляется, когда посетитель уходит ниже первого экрана. Пусто — берётся общий для сайта текст.</p>
+          <legend><?= ate('Плавающая панель внизу') ?></legend>
+          <p class="group__hint"><?= ate('Появляется, когда посетитель уходит ниже первого экрана. Пусто — берётся общий для сайта текст.') ?></p>
 
           <label class="field">
-            <span class="field__label">Заголовок</span>
+            <span class="field__label"><?= ate('Заголовок') ?></span>
             <input type="text" name="bar_title" value="<?= e((string) ($bar['title'] ?? '')) ?>">
           </label>
 
           <label class="field">
-            <span class="field__label">Подпись</span>
+            <span class="field__label"><?= ate('Подпись') ?></span>
             <input type="text" name="bar_subtitle" value="<?= e((string) ($bar['subtitle'] ?? '')) ?>">
           </label>
 
           <label class="field">
-            <span class="field__label">Подпись кнопки</span>
+            <span class="field__label"><?= ate('Подпись кнопки') ?></span>
             <input type="text" name="bar_label" value="<?= e((string) ($bar['label'] ?? '')) ?>">
           </label>
 
           <label class="field">
-            <span class="field__label">Сообщение в WhatsApp</span>
+            <span class="field__label"><?= ate('Сообщение в WhatsApp') ?></span>
             <textarea name="bar_message" rows="2"><?= e((string) ($bar['message'] ?? '')) ?></textarea>
           </label>
         </fieldset>
 
-        <button type="submit" class="btn btn--primary">Сохранить настройки</button>
+        <button type="submit" class="btn btn--primary"><?= ate('Сохранить настройки') ?></button>
       </form>
     </div>
   </div>
 
   <aside class="editor__side">
     <div class="card card--sticky">
-      <h2 class="card__title">Добавить блок</h2>
+      <h2 class="card__title"><?= ate('Добавить блок') ?></h2>
 
       <?php foreach ($library as $group => $types): ?>
         <div class="library__group">

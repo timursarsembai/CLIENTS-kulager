@@ -5,12 +5,12 @@ declare(strict_types=1);
 
 $sections = PageRepository::sections();
 ?>
-<h1 class="page-title">Страницы</h1>
+<h1 class="page-title"><?= ate('Страницы') ?></h1>
 
 <?php if ($pages === []): ?>
   <div class="card">
-    <h2 class="card__title">Страниц пока нет</h2>
-    <p class="card__lead">Перенесите текущий контент из файлов — это делается одной кнопкой.</p>
+    <h2 class="card__title"><?= ate('Страниц пока нет') ?></h2>
+    <p class="card__lead"><?= ate('Перенесите текущий контент из файлов — это делается одной кнопкой.') ?></p>
     <a href="<?= e($admin->url('system')) ?>" class="btn">Перейти к переносу</a>
   </div>
 <?php else: ?>
@@ -39,7 +39,7 @@ $sections = PageRepository::sections();
       <table class="table table--pages">
         <thead>
           <tr>
-            <th>Страница</th>
+            <th><?= ate('Страница') ?></th>
             <?php foreach ($locales as $code => $meta): ?>
               <th class="nowrap"><?= e($meta['short']) ?></th>
             <?php endforeach; ?>
@@ -60,7 +60,7 @@ $sections = PageRepository::sections();
               <td>
                 <a href="<?= e($admin->url('page/' . $page['id'] . '/' . $code)) ?>" class="locale-cell">
                   <?php if ($row === null): ?>
-                    <span class="muted">не заполнена</span>
+                    <span class="muted"><?= ate('не заполнена') ?></span>
                   <?php else: ?>
                     <span class="pill pill--<?= $row['is_published'] ? 'ok' : 'draft' ?>">
                       <?= $row['is_published'] ? 'опубликована' : 'черновик' ?>

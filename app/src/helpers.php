@@ -32,3 +32,18 @@ function classes(array $list): string
 
     return implode(' ', $out);
 }
+
+/**
+ * Строка интерфейса админки на языке пользователя.
+ * Ключ — русский текст, поэтому шаблон читается и без словаря.
+ */
+function at(string $text, mixed ...$args): string
+{
+    return $args === [] ? AdminLang::get($text) : AdminLang::format($text, ...$args);
+}
+
+/** То же, но сразу экранированное — для вывода в разметку. */
+function ate(string $text, mixed ...$args): string
+{
+    return e(at($text, ...$args));
+}

@@ -3,6 +3,18 @@
 (function () {
   'use strict';
 
+  /* ------------------------------------------------- разделы на телефоне */
+
+  var topbar = document.querySelector('[data-topbar]');
+  var topbarToggle = document.querySelector('[data-topbar-toggle]');
+
+  if (topbar && topbarToggle) {
+    topbarToggle.addEventListener('click', function () {
+      var open = topbar.classList.toggle('is-open');
+      topbarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
   /* ------------------------------------------- подтверждение перед удалением */
 
   document.querySelectorAll('form[data-confirm]').forEach(function (form) {

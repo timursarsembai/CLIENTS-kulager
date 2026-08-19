@@ -112,6 +112,12 @@ final class Admin
             return;
         }
 
+        /*
+         * Язык интерфейса берём у пользователя. До входа — язык сайта:
+         * страницу входа тоже надо кому-то читать.
+         */
+        AdminLang::use($this->auth->user()['locale'] ?? '' ?: $this->site->defaultLocale());
+
         // Первый запуск: заводим администратора
         if (!$this->auth->hasUsers()) {
             $path === 'setup' ? $this->setup() : $this->redirect('setup');
@@ -180,6 +186,7 @@ final class Admin
             'pages'    => $this->pagesList(),
             'profile'  => $this->profile(),
             'twofa'    => $this->twoFactor(),
+            'lang'     => $this->switchLanguage(),
             'settings' => $this->siteSettings(),
             'seo'      => $this->adminOnly() ? $this->seoSettings() : null,
             'system'   => $this->adminOnly() ? $this->system() : null,
@@ -1646,6 +1653,25 @@ final class Admin
     private function keepUndo(array $page, string $locale, string $comment): void
     {
         $this->pages->snapshot((int) $page['id'], $locale, $this->auth->user()['id'] ?? null, $comment);
+    }
+
+    /** Переключение языка админки — хранится у пользователя. */
+    private function switchLanguage(): void
+    {
+        if ($this->isPost()) {
+            $locale = (string) ($_POST['locale'] ?? '');
+
+            if (isset($this->site->locales()[$locale])) {
+                $this->db->update(
+                    'users',
+                    ['locale' => $locale],
+                    'id = :id',
+                    ['id' => $this->auth->user()['id'] ?? 0]
+                );
+            }
+        }
+
+        $this->redirect((string) ($_POST['back'] ?? ''));
     }
 
     /** Возврат языковой версии к состоянию до последнего изменения. */

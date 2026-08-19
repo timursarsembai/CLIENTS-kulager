@@ -26,7 +26,7 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
-<title><?= e($title !== '' ? $title . ' — админка KULAGER' : 'Админка KULAGER') ?></title>
+<title><?= e($title !== '' ? $title . at(' — админка KULAGER') : at('Админка KULAGER')) ?></title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -53,31 +53,36 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 <body>
 
 <?php if ($user): ?>
-<header class="topbar">
+<header class="topbar" data-topbar>
   <a href="<?= e($admin->url()) ?>" class="topbar__brand">KULAGER<span>админка</span></a>
 
   <?php
   /* Пункты меню: раздел => подпись. Открытый подсвечивается */
   $menu = [
-      'pages'    => 'Страницы',
-      'menu'     => 'Меню',
-      'leads'    => 'Заявки',
-      'media'    => 'Медиатека',
-      'settings' => 'Настройки',
+      'pages'    => at('Страницы'),
+      'menu'     => at('Меню'),
+      'leads'    => at('Заявки'),
+      'media'    => at('Медиатека'),
+      'settings' => at('Настройки'),
   ];
 
   if ($auth->isAdmin()) {
       $menu += [
-          'users'  => 'Пользователи',
+          'users'  => at('Пользователи'),
           'seo'    => 'SEO',
-          'themes' => 'Оформление',
-          'system' => 'Состояние',
+          'themes' => at('Оформление'),
+          'system' => at('Состояние'),
       ];
   }
 
   // Правка страницы и её блоков живёт по адресу page/… — это тоже «Страницы»
   $current = $admin->section() === 'page' ? 'pages' : $admin->section();
   ?>
+
+  <?php /* На телефоне разделы прячутся за этой кнопкой */ ?>
+  <button type="button" class="btn btn--small topbar__toggle" data-topbar-toggle aria-expanded="false">
+    <?= ate('Разделы') ?>
+  </button>
 
   <nav class="topbar__nav">
     <?php foreach ($menu as $key => $label): ?>
@@ -86,10 +91,23 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
       </a>
     <?php endforeach; ?>
 
-    <a href="/" target="_blank" rel="noopener">Сайт ↗</a>
+    <a href="/" target="_blank" rel="noopener"><?= ate('Сайт') ?> ↗</a>
   </nav>
 
   <div class="topbar__user">
+    <?php /* Язык интерфейса: у каждого свой */ ?>
+    <form method="post" action="<?= e($admin->url('lang')) ?>" class="topbar__lang">
+      <?= Csrf::field() ?>
+      <input type="hidden" name="back" value="<?= e($admin->section()) ?>">
+
+      <?php foreach ($site->locales() as $code => $meta): ?>
+        <button type="submit" name="locale" value="<?= e($code) ?>"
+                class="topbar__lang-item<?= AdminLang::locale() === $code ? ' is-active' : '' ?>">
+          <?= e((string) $meta['short']) ?>
+        </button>
+      <?php endforeach; ?>
+    </form>
+
     <?php /* Профиль и выход — кнопки: они действия, а не навигация по разделам */ ?>
     <a href="<?= e($admin->url('profile')) ?>"
        class="btn btn--small<?= $admin->section() === 'profile' ? ' btn--primary' : '' ?>">
@@ -98,7 +116,7 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 
     <form method="post" action="<?= e($admin->url('logout')) ?>">
       <?= Csrf::field() ?>
-      <button type="submit" class="btn btn--small">Выйти</button>
+      <button type="submit" class="btn btn--small"><?= ate('Выйти') ?></button>
     </form>
   </div>
 </header>

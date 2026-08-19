@@ -11,18 +11,18 @@ $labels = [
     'publish' => 'публикация',
 ];
 ?>
-<h1 class="page-title">Панель</h1>
+<h1 class="page-title"><?= ate('Панель') ?></h1>
 
 <div class="tiles">
-  <div class="tile"><span class="tile__value"><?= e((string) $stats['pages']) ?></span><span class="tile__label">страниц</span></div>
-  <div class="tile"><span class="tile__value"><?= e((string) $stats['published']) ?></span><span class="tile__label">опубликовано</span></div>
-  <div class="tile"><span class="tile__value"><?= e((string) $stats['blocks']) ?></span><span class="tile__label">блоков</span></div>
-  <div class="tile"><span class="tile__value"><?= e((string) $stats['media']) ?></span><span class="tile__label">файлов</span></div>
+  <div class="tile"><span class="tile__value"><?= e((string) $stats['pages']) ?></span><span class="tile__label"><?= ate('страниц') ?></span></div>
+  <div class="tile"><span class="tile__value"><?= e((string) $stats['published']) ?></span><span class="tile__label"><?= ate('опубликовано') ?></span></div>
+  <div class="tile"><span class="tile__value"><?= e((string) $stats['blocks']) ?></span><span class="tile__label"><?= ate('блоков') ?></span></div>
+  <div class="tile"><span class="tile__value"><?= e((string) $stats['media']) ?></span><span class="tile__label"><?= ate('файлов') ?></span></div>
 </div>
 
 <?php if ($stats['pages'] === 0): ?>
   <div class="card">
-    <h2 class="card__title">Контент ещё не перенесён</h2>
+    <h2 class="card__title"><?= ate('Контент ещё не перенесён') ?></h2>
     <p class="card__lead">
       Сайт сейчас работает на файлах <code>app/content</code>. Перенесите их в базу —
       после этого страницы можно будет править через админку.
@@ -32,10 +32,10 @@ $labels = [
 <?php endif; ?>
 
 <div class="card">
-  <h2 class="card__title">Последние действия</h2>
+  <h2 class="card__title"><?= ate('Последние действия') ?></h2>
 
   <?php if ($recent === []): ?>
-    <p class="muted">Пока пусто.</p>
+    <p class="muted"><?= ate('Пока пусто.') ?></p>
   <?php else: ?>
     <table class="table">
       <tbody>

@@ -8,15 +8,11 @@ declare(strict_types=1);
  * @var array $defaults
  */
 ?>
-<h1 class="page-title">Настройки</h1>
+<h1 class="page-title"><?= ate('Настройки') ?></h1>
 
 <div class="card card--form">
-  <h2 class="card__title">Контакты и адреса</h2>
-  <p class="card__lead">
-    Эти данные подставляются во все страницы сразу: телефоны, кнопки WhatsApp,
-    подвал, микроразметку для поисковиков. Пустое поле означает «взять значение
-    из настроек проекта».
-  </p>
+  <h2 class="card__title"><?= ate('Контакты и адреса') ?></h2>
+  <p class="card__lead"><?= ate('Эти данные подставляются во все страницы сразу: телефоны, кнопки WhatsApp, подвал, микроразметку для поисковиков. Пустое поле означает «взять значение из настроек проекта».') ?></p>
 
   <form method="post" action="<?= e($admin->url('settings')) ?>">
     <?= Csrf::field() ?>
@@ -44,6 +40,6 @@ declare(strict_types=1);
       </label>
     <?php endforeach; ?>
 
-    <button type="submit" class="btn btn--primary">Сохранить</button>
+    <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
   </form>
 </div>
