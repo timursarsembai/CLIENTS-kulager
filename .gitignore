@@ -8,8 +8,13 @@ app/logs/*.log
 public_html/assets/uploads/*
 !public_html/assets/uploads/.gitkeep
 
-# Локальные пароли к базе
+# Локальные пароли к базе.
+# Не только сам .env: scripts/pull-secrets.sh перед каждой сборкой кладёт рядом
+# .env.bak — копию предыдущих значений для быстрого отката. Она такой же секрет,
+# и без второй строки уехала бы в историю при первом же `git add .`.
 .env
+.env.*
+!.env.example
 
 # Мусор редакторов и системы
 .DS_Store
