@@ -518,6 +518,9 @@ code {
   margin: 0;
   padding: 0;
   display: grid;
+  /* minmax(0, 1fr) вместо 1fr: иначе длинная строка описания растягивает
+     сетку шире экрана — по умолчанию элемент сетки не даёт себя сжать */
+  grid-template-columns: minmax(0, 1fr);
   gap: 1px;
   background: var(--line);
   border: 1px solid var(--line);
@@ -530,6 +533,7 @@ code {
   gap: 0;
   border: 0;
   background: var(--surface);
+  min-width: 0;
 }
 .block.is-dragging { opacity: .4; }
 .block--hidden { background: repeating-linear-gradient(135deg, #fafbfc, #fafbfc 8px, #f2f4f6 8px, #f2f4f6 16px); }
@@ -1083,7 +1087,10 @@ code {
 
   .theme-vars { grid-template-columns: 1fr; }
   .blocks { gap: 1px; }
-  .block__actions { flex-wrap: wrap; }
+  .block__handle { padding: 0 4px; }
+  .block__body { padding: 10px 8px 10px 0; }
+  .block__actions { padding-right: 2px; gap: 0; }
+  .block__actions .icon-btn { padding: 6px 5px; }
 
   /* Окно выбора картинки на телефоне — во весь экран */
   .picker { padding: 0; }
