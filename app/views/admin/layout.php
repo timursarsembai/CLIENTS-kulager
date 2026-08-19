@@ -55,18 +55,36 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 <header class="topbar">
   <a href="<?= e($admin->url()) ?>" class="topbar__brand">KULAGER<span>админка</span></a>
 
+  <?php
+  /* Пункты меню: раздел => подпись. Открытый подсвечивается */
+  $menu = [
+      'pages'    => 'Страницы',
+      'menu'     => 'Меню',
+      'leads'    => 'Заявки',
+      'media'    => 'Медиатека',
+      'settings' => 'Настройки',
+  ];
+
+  if ($auth->isAdmin()) {
+      $menu += [
+          'users'  => 'Пользователи',
+          'seo'    => 'SEO',
+          'themes' => 'Оформление',
+          'system' => 'Состояние',
+      ];
+  }
+
+  // Правка страницы и её блоков живёт по адресу page/… — это тоже «Страницы»
+  $current = $admin->section() === 'page' ? 'pages' : $admin->section();
+  ?>
+
   <nav class="topbar__nav">
-    <a href="<?= e($admin->url('pages')) ?>">Страницы</a>
-    <a href="<?= e($admin->url('menu')) ?>">Меню</a>
-    <a href="<?= e($admin->url('leads')) ?>">Заявки</a>
-    <a href="<?= e($admin->url('media')) ?>">Медиатека</a>
-    <a href="<?= e($admin->url('settings')) ?>">Настройки</a>
-    <?php if ($auth->isAdmin()): ?>
-      <a href="<?= e($admin->url('users')) ?>">Пользователи</a>
-      <a href="<?= e($admin->url('seo')) ?>">SEO</a>
-      <a href="<?= e($admin->url('themes')) ?>">Оформление</a>
-      <a href="<?= e($admin->url('system')) ?>">Состояние</a>
-    <?php endif; ?>
+    <?php foreach ($menu as $key => $label): ?>
+      <a href="<?= e($admin->url($key)) ?>"<?= $current === $key ? ' class="is-active" aria-current="page"' : '' ?>>
+        <?= e($label) ?>
+      </a>
+    <?php endforeach; ?>
+
     <a href="/" target="_blank" rel="noopener">Сайт ↗</a>
   </nav>
 

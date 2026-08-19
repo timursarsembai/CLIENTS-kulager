@@ -33,6 +33,14 @@ final class Admin
     /** Одноразовый ключ для inline-скриптов админки. */
     private string $nonce = '';
 
+    /** Текущий раздел — по нему подсвечивается пункт в навигации. */
+    private string $section = '';
+
+    public function section(): string
+    {
+        return $this->section;
+    }
+
     public function nonce(): string
     {
         return $this->nonce;
@@ -60,6 +68,9 @@ final class Admin
 
         $path = trim((string) parse_url($requestUri, PHP_URL_PATH), '/');
         $path = trim(substr($path, strlen(trim($this->base, '/'))), '/');
+
+        // Первый сегмент: pages, menu, leads… — им и подсвечиваем навигацию
+        $this->section = explode('/', $path)[0] ?? '';
 
         // Без базы админка бессмысленна — показываем, что именно не так
         if (!$this->db->isAvailable()) {

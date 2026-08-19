@@ -20,6 +20,16 @@ $sections = PageRepository::sections();
   foreach ($pages as $page) {
       $grouped[$page['section']][] = $page;
   }
+
+  // Раскладываем в порядке справочника: база отдаёт разделы по алфавиту
+  $ordered = [];
+  foreach (array_keys($sections) as $key) {
+      if (isset($grouped[$key])) {
+          $ordered[$key] = $grouped[$key];
+      }
+  }
+
+  $grouped = $ordered + $grouped;
   ?>
 
   <?php foreach ($grouped as $section => $items): ?>
