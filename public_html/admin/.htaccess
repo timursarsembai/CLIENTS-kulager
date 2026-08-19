@@ -1,18 +1,17 @@
 Options -Indexes -MultiViews
 DirectoryIndex index.php
 
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteBase /admin/
+# Маршрутизация админки живёт в public_html/.htaccess: правила mod_rewrite,
+# заданные в подкаталоге, отменяют правила корня и ломают обработку /admin.
 
-    # Статика админки отдаётся как есть, остальное — во фронт-контроллер
-    RewriteCond %{REQUEST_FILENAME} -f
-    RewriteRule ^ - [L]
 
-    RewriteRule ^ index.php [QSA,L]
-</IfModule>
+SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on
+SetEnvIf X-Forwarded-Proto "^https$" BEHIND_TLS=1
 
 <IfModule mod_headers.c>
+    # Переадресация админки тоже должна оставаться на https
+    Header always edit Location "^http://" "https://" env=BEHIND_TLS
+
     # Админку не индексируем и не показываем во фреймах
     Header always set X-Robots-Tag "noindex, nofollow"
     Header always set X-Frame-Options "SAMEORIGIN"

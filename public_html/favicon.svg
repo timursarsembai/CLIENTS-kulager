@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="KULAGER">
+  <rect width="64" height="64" fill="#10202F"/>
+  <path d="M13 13h10v16l18-16h13L35 32l19 19H41L23 35v16H13z" fill="#F1EFE6"/>
+  <rect x="13" y="54" width="41" height="4" fill="#C25B12"/>
+</svg>

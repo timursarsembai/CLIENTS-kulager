@@ -4,6 +4,20 @@ DirectoryIndex index.php
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Маршруты админки описаны здесь, а не в public_html/admin/.htaccess:
+    # свои правила в подкаталоге отменяют правила корня целиком, и тогда
+    # /admin без слэша до mod_rewrite вообще не доходит — слэш добавляет
+    # сам Apache, а за обратным прокси он строит переадресацию по http://.
+    # Страница и форма оказываются на разных источниках, и браузер
+    # блокирует вход правилом form-action.
+    RewriteCond %{HTTP:X-Forwarded-Proto} =https
+    RewriteRule ^admin$ https://%{HTTP_HOST}/admin/ [R=301,L]
+    RewriteRule ^admin$ /admin/ [R=301,L]
+
+    # Внутри админки существующие файлы отдаём как есть, остальное — её фронт-контроллеру
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^admin/ admin/index.php [QSA,L]
+
     # Реальные файлы и каталоги отдаём как есть
     RewriteCond %{REQUEST_FILENAME} -f [OR]
     RewriteCond %{REQUEST_FILENAME} -d
@@ -16,7 +30,16 @@ DirectoryIndex index.php
 # Каталог приложения недоступен из веба, если лежит внутри public_html
 RedirectMatch 404 ^/app(/|$)
 
+# За обратным прокси Apache видит обычный http и строит редиректы на http://.
+# Браузер тогда считает, что страница и форма живут на разных источниках,
+# и блокирует отправку по правилу form-action 'self'.
+SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on
+SetEnvIf X-Forwarded-Proto "^https$" BEHIND_TLS=1
+
 <IfModule mod_headers.c>
+    # Возвращаем схему на место в адресе переадресации
+    Header always edit Location "^http://" "https://" env=BEHIND_TLS
+
     Header always set X-Content-Type-Options "nosniff"
     Header always set X-Frame-Options "SAMEORIGIN"
     Header always set Referrer-Policy "strict-origin-when-cross-origin"

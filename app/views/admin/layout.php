@@ -28,6 +28,11 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 <meta name="robots" content="noindex, nofollow">
 <title><?= e($title !== '' ? $title . at(' — админка KULAGER') : at('Админка KULAGER')) ?></title>
 
+<?php /* Иконка вкладки: SVG для нынешних браузеров, ICO — запасной вариант */ ?>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="<?= e($site->asset('img/apple-touch-icon.png')) ?>">
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
