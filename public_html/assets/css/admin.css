@@ -286,8 +286,12 @@ code {
   max-width: 100%;
 }
 
-/* Внутри `.field` поле занимает всю ширину, в строчных формах — по содержимому */
-.field input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]),
+/*
+ * Внутри `.field` поле занимает всю ширину, в строчных формах — по содержимому.
+ * Пипетку, ползунок и выбор файла исключаем: у них своя ширина, иначе
+ * пипетка растягивается на всю строку и выдавливает поле со значением.
+ */
+.field input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="file"]),
 .field select,
 .field textarea { width: 100%; }
 
@@ -729,11 +733,15 @@ code {
 .theme-var { margin-bottom: 0; }
 .theme-var .field__hint { min-height: 2.6em; text-transform: none; letter-spacing: 0; }
 
-/* Цвет и его значение стоят в строке; ползунок прозрачности — там же */
-.theme-var__pair { display: flex; gap: 8px; align-items: center; }
+/*
+ * Цвет и его значение стоят в строке. У полупрозрачных слоёв к ним добавляется
+ * ползунок — в узкой колонке он переносится на вторую строку, иначе вылезал
+ * за край карточки.
+ */
+.theme-var__pair { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .theme-var__pair input[type="color"] { flex: 0 0 auto; width: 46px; }
-.theme-var__pair input[type="text"] { flex: 1 1 auto; min-width: 0; }
-.theme-var__pair input[type="range"] { flex: 1 1 auto; min-width: 80px; }
+.theme-var__pair input[type="text"] { flex: 1 1 140px; min-width: 0; }
+.theme-var__pair input[type="range"] { flex: 1 1 120px; min-width: 0; }
 .theme-var__pair output {
   flex: 0 0 auto;
   font-size: 12px;
