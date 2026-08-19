@@ -167,13 +167,18 @@
         return;
       }
 
+      if (target && target !== image) target.classList.remove('is-hovered');
+
       target = image;
+      image.classList.add('is-hovered');
       button.hidden = false;
       button.style.top = Math.max(8, box.top + 12) + 'px';
       button.style.left = Math.min(window.innerWidth - 16, box.right - 12) + 'px';
     };
 
     var hide = function () {
+      if (target) target.classList.remove('is-hovered');
+
       button.hidden = true;
       target = null;
     };
@@ -207,7 +212,6 @@
     Array.prototype.forEach.call(images, function (image) {
       image.classList.add('is-editable-image');
 
-      image.addEventListener('mouseenter', function () { place(image); });
       image.addEventListener('click', function (event) {
         event.preventDefault();
         replace(image);
@@ -218,10 +222,58 @@
       if (target) replace(target);
     });
 
-    // Кнопка исчезает, когда курсор ушёл и с картинки, и с самой кнопки
-    document.addEventListener('mouseover', function (event) {
-      if (!event.target.closest('[data-edit-image], .edit-image-btn')) hide();
-    });
+    /**
+     * Картинку ищем по координатам курсора, а не по наведению на неё.
+     *
+     * В обложке поверх фотографии лежат затемнение и текстовый слой — они
+     * перехватывают курсор, и mouseenter до картинки не доходит. Проверка
+     * по прямоугольнику работает независимо от того, что сверху.
+     */
+    var pending = false;
+
+    document.addEventListener('mousemove', function (event) {
+      if (pending) return;
+
+      pending = true;
+
+      requestAnimationFrame(function () {
+        pending = false;
+
+        // Над самой кнопкой ничего не пересчитываем — иначе она убежит
+        if (event.target.closest('.edit-image-btn')) return;
+
+        // Над редактируемым текстом кнопка мешает: там правят текст
+        if (event.target.closest('[data-edit-path]')) {
+          hide();
+
+          return;
+        }
+
+        var found = null;
+
+        Array.prototype.forEach.call(images, function (image) {
+          var box = image.getBoundingClientRect();
+
+          if (box.width === 0 || box.height === 0) return;
+
+          var inside = event.clientX >= box.left && event.clientX <= box.right
+            && event.clientY >= box.top && event.clientY <= box.bottom;
+
+          // Меньшая картинка важнее: миниатюра галереи лежит поверх крупной
+          if (inside && (found === null || box.width < found.width)) {
+            found = { image: image, width: box.width };
+          }
+        });
+
+        if (found === null) {
+          hide();
+
+          return;
+        }
+
+        place(found.image);
+      });
+    }, { passive: true });
 
     window.addEventListener('scroll', function () {
       if (target) place(target);

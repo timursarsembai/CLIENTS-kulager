@@ -29,7 +29,12 @@
   cursor: pointer;
   transition: outline-color .15s ease;
 }
-.is-editable-image:hover { outline: 2px solid var(--accent); outline-offset: -2px; }
+/*
+ * Подсветку ставит скрипт: у обложки поверх фотографии лежит затемнение,
+ * и :hover до самой картинки не доходит.
+ */
+.is-editable-image:hover,
+.is-editable-image.is-hovered { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 /* Кнопка плавает над картинкой: в разметку её вставлять нельзя — поедет вёрстка */
 .edit-image-btn {
