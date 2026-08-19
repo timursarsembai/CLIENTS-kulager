@@ -88,11 +88,18 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
     <a href="/" target="_blank" rel="noopener">Сайт ↗</a>
   </nav>
 
-  <form method="post" action="<?= e($admin->url('logout')) ?>" class="topbar__user">
-    <?= Csrf::field() ?>
-    <a href="<?= e($admin->url('profile')) ?>"><?= e($user['name'] ?: $user['email']) ?></a>
-    <button type="submit" class="link">Выйти</button>
-  </form>
+  <div class="topbar__user">
+    <?php /* Профиль и выход — кнопки: они действия, а не навигация по разделам */ ?>
+    <a href="<?= e($admin->url('profile')) ?>"
+       class="btn btn--small<?= $admin->section() === 'profile' ? ' btn--primary' : '' ?>">
+      <?= e($user['name'] ?: $user['email']) ?>
+    </a>
+
+    <form method="post" action="<?= e($admin->url('logout')) ?>">
+      <?= Csrf::field() ?>
+      <button type="submit" class="btn btn--small">Выйти</button>
+    </form>
+  </div>
 </header>
 <?php endif; ?>
 

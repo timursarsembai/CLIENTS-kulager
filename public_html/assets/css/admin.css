@@ -108,9 +108,18 @@ code {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: var(--ink-3);
-  font-size: 14px;
+  gap: 8px;
+}
+.topbar__user form { margin: 0; }
+
+/* Имя длинное — обрезаем, чтобы кнопка не растягивала шапку */
+.topbar__user .btn {
+  max-width: 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+  line-height: 1.4;
 }
 
 /* ---------------------------------------------------------- раскладка */
