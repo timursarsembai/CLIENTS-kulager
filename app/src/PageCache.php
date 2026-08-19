@@ -42,8 +42,13 @@ final class PageCache
             return false;
         }
 
-        // Редактор ходит по сайту со своей сессионной кукой — ему отдаём живое
-        return !isset($_COOKIE[session_name()]);
+        /*
+         * Редактору отдаём живую страницу: у него сверху панель администратора,
+         * и в общий кэш она попасть не должна. Куку админки проверяем по имени,
+         * а не через session_name(): в публичной части сессия ещё не открыта,
+         * и функция вернула бы имя по умолчанию.
+         */
+        return !isset($_COOKIE['kulager_admin']) && !isset($_COOKIE[session_name()]);
     }
 
     public function get(string $key): ?string
