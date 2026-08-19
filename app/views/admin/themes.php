@@ -33,14 +33,14 @@ declare(strict_types=1);
             </span>
           </td>
           <td>
-            <?= e((string) $theme['name']) ?>
+            <?= ate((string) $theme['name']) ?>
             <?php if ($isCurrent): ?>
               <span class="pill pill--ok"><?= ate('по умолчанию') ?></span>
             <?php endif; ?>
           </td>
-          <td class="muted"><?= $theme['is_builtin'] ? 'встроенная' : 'своя' ?></td>
+          <td class="muted"><?= $theme['is_builtin'] ? ate('встроенная') : ate('своя') ?></td>
           <td class="table__actions">
-            <a href="<?= e($admin->url('themes/' . $theme['id'])) ?>" class="btn btn--small">Править</a>
+            <a href="<?= e($admin->url('themes/' . $theme['id'])) ?>" class="btn btn--small"><?= ate('Править') ?></a>
 
             <?php if (!$isCurrent): ?>
               <form method="post" action="<?= e($admin->url('themes/default')) ?>" class="inline-form">
@@ -52,7 +52,7 @@ declare(strict_types=1);
 
             <?php if (!$theme['is_builtin']): ?>
               <form method="post" action="<?= e($admin->url('themes/' . $theme['id'] . '/delete')) ?>"
-                    class="inline-form" data-confirm="Удалить тему?">
+                    class="inline-form" data-confirm="<?= ate('Удалить тему?') ?>">
                 <?= Csrf::field() ?>
                 <button type="submit" class="link link--danger"><?= ate('Удалить') ?></button>
               </form>
@@ -71,11 +71,11 @@ declare(strict_types=1);
   <form method="post" action="<?= e($admin->url('themes/add')) ?>" class="menu-add__body">
     <?= Csrf::field() ?>
 
-    <input type="text" name="name" placeholder="Название темы" required>
+    <input type="text" name="name" placeholder="<?= ate('Название темы') ?>" required>
 
     <select name="source">
       <?php foreach ($themes as $theme): ?>
-        <option value="<?= e((string) $theme['theme_key']) ?>">на основе «<?= e((string) $theme['name']) ?>»</option>
+        <option value="<?= e((string) $theme['theme_key']) ?>"><?= ate('на основе') ?> «<?= ate((string) $theme['name']) ?>»</option>
       <?php endforeach; ?>
     </select>
 

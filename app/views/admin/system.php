@@ -22,38 +22,38 @@ declare(strict_types=1);
 <div class="card">
   <h2 class="card__title"><?= ate('Резервная копия') ?></h2>
   <p class="card__lead">
-    В копию попадают все тексты страниц, настройки и загруженные файлы.
+    <?= ate('В копию попадают все тексты страниц, настройки и загруженные файлы.') ?>
     <?php if (!$canZip): ?>
-      Расширение ZipArchive недоступно, поэтому выгрузим только дамп базы —
-      файлы из <code>assets/uploads</code> скопируйте отдельно.
+      <?= at('Расширение ZipArchive недоступно, поэтому выгрузим только дамп базы — файлы из %s скопируйте отдельно.',
+             '<code>assets/uploads</code>') ?>
     <?php else: ?>
-      Скачается один архив: дамп базы и каталог загрузок.
+      <?= ate('Скачается один архив: дамп базы и каталог загрузок.') ?>
     <?php endif; ?>
-    Шаблоны и стили в копию не входят — они лежат в исходниках проекта.
+    <?= ate('Шаблоны и стили в копию не входят — они лежат в исходниках проекта.') ?>
   </p>
 
   <form method="post" action="<?= e($admin->url('backup')) ?>">
     <?= Csrf::field() ?>
     <button type="submit" class="btn btn--primary"><?= ate('Скачать копию') ?></button>
-    <a href="<?= e($admin->url('log')) ?>" class="btn">Журнал действий</a>
+    <a href="<?= e($admin->url('log')) ?>" class="btn"><?= ate('Журнал действий') ?></a>
   </form>
 </div>
 
 <div class="card">
   <h2 class="card__title"><?= ate('Восстановление контента из файлов') ?></h2>
   <p class="card__lead">
-    Страницы жили в файлах <code>app/content</code> до переезда в базу — сейчас
-    их там <?= e((string) $contentFiles) ?>. Переезд уже состоялся: сайт берёт
-    контент из базы, а файлы остались слепком исходной вёрстки.
+    <?= at('Страницы жили в файлах %s до переезда в базу — сейчас их там %d. Переезд уже состоялся: сайт берёт контент из базы, а файлы остались слепком исходной вёрстки.',
+           '<code>app/content</code>', $contentFiles) ?>
   </p>
 
   <div class="notice notice--warn">
-    Эта кнопка нужна только в одном случае — <strong><?= ate('вернуть страницы к исходному виду') ?></strong>, если что-то безнадёжно испорчено. Она <strong><?= ate('сотрёт все правки, сделанные через админку') ?></strong>: и тексты блоков, и меню. В обычной работе
-    она не нужна.
+    <?= at('Эта кнопка нужна только в одном случае — %s, если что-то безнадёжно испорчено. Она %s: и тексты блоков, и меню. В обычной работе она не нужна.',
+           '<strong>' . ate('вернуть страницы к исходному виду') . '</strong>',
+           '<strong>' . ate('сотрёт все правки, сделанные через админку') . '</strong>') ?>
   </div>
 
   <form method="post" action="<?= e($admin->url('import')) ?>"
-        data-confirm="Все правки, сделанные через админку, будут заменены содержимым файлов. Это не отменяется. Продолжить?">
+        data-confirm="<?= ate('Все правки, сделанные через админку, будут заменены содержимым файлов. Это не отменяется. Продолжить?') ?>">
     <?= Csrf::field() ?>
     <button type="submit" class="btn"><?= ate('Вернуть контент из файлов') ?></button>
   </form>
@@ -70,7 +70,7 @@ declare(strict_types=1);
           <?php if ($security['https']): ?>
             <span class="pill pill--ok">HTTPS</span>
           <?php else: ?>
-            <span class="pill pill--warn"><?= ate('без HTTPS') ?></span> пароли идут открытым текстом
+            <span class="pill pill--warn"><?= ate('без HTTPS') ?></span> <?= ate('пароли идут открытым текстом') ?>
           <?php endif; ?>
         </td>
       </tr>
@@ -78,7 +78,7 @@ declare(strict_types=1);
         <th><?= ate('Отладка') ?></th>
         <td>
           <?php if ($security['debug']): ?>
-            <span class="pill pill--warn"><?= ate('включена') ?></span> посетителям видны тексты ошибок
+            <span class="pill pill--warn"><?= ate('включена') ?></span> <?= ate('посетителям видны тексты ошибок') ?>
           <?php else: ?>
             <span class="pill pill--ok"><?= ate('выключена') ?></span>
           <?php endif; ?>
@@ -88,10 +88,10 @@ declare(strict_types=1);
         <th><?= ate('Вход по коду') ?></th>
         <td>
           <?php if ($security['two_factor'] > 0): ?>
-            <span class="pill pill--ok">у <?= e((string) $security['two_factor']) ?> из <?= e((string) count($security['users'])) ?></span>
+            <span class="pill pill--ok"><?= ate('у %d из %d', (int) $security['two_factor'], count($security['users'])) ?></span>
           <?php else: ?>
             <span class="pill pill--warn"><?= ate('ни у кого') ?></span>
-            включается в разделе «Профиль»
+            <?= ate('включается в разделе «Профиль»') ?>
           <?php endif; ?>
         </td>
       </tr>
@@ -113,9 +113,8 @@ declare(strict_types=1);
 <div class="card">
   <h2 class="card__title"><?= ate('Кэш страниц') ?></h2>
   <p class="card__lead">
-    Готовые страницы сохраняются в <code>app/cache</code> и отдаются без обращения к базе.
-    Сейчас в кэше: <?= e((string) $cachedPages) ?>. Любая правка в админке сбрасывает его сама —
-    кнопка нужна, если данные меняли мимо админки.
+    <?= at('Готовые страницы сохраняются в %s и отдаются без обращения к базе. Сейчас в кэше: %d. Любая правка в админке сбрасывает его сама — кнопка нужна, если данные меняли мимо админки.',
+           '<code>app/cache</code>', $cachedPages) ?>
   </p>
 
   <form method="post" action="<?= e($admin->url('cache')) ?>">
@@ -135,7 +134,7 @@ declare(strict_types=1);
         <tr>
           <th><?= e($name) ?></th>
           <td>
-            <span class="pill pill--<?= $loaded ? 'ok' : 'error' ?>"><?= $loaded ? 'есть' : 'отсутствует' ?></span>
+            <span class="pill pill--<?= $loaded ? 'ok' : 'error' ?>"><?= $loaded ? ate('есть') : ate('отсутствует') ?></span>
           </td>
         </tr>
       <?php endforeach; ?>
@@ -151,7 +150,7 @@ declare(strict_types=1);
             <?php if ($state === null): ?>
               <span class="muted"><?= ate('каталога нет') ?></span>
             <?php else: ?>
-              <span class="pill pill--<?= $state ? 'ok' : 'error' ?>"><?= $state ? 'запись доступна' : 'нет прав на запись' ?></span>
+              <span class="pill pill--<?= $state ? 'ok' : 'error' ?>"><?= $state ? ate('запись доступна') : ate('нет прав на запись') ?></span>
             <?php endif; ?>
           </td>
         </tr>
@@ -164,12 +163,12 @@ declare(strict_types=1);
   <h2 class="card__title"><?= ate('Миграции') ?></h2>
 
   <?php if ($migrations['pending'] !== []): ?>
-    <div class="notice notice--warn">Не применено: <?= e(implode(', ', $migrations['pending'])) ?></div>
+    <div class="notice notice--warn"><?= ate('Не применено: %s', implode(', ', $migrations['pending'])) ?></div>
     <form method="post" action="<?= e($admin->url('migrate')) ?>">
       <?= Csrf::field() ?>
       <button type="submit" class="btn btn--primary"><?= ate('Применить') ?></button>
     </form>
   <?php else: ?>
-    <p class="muted">Все применены: <?= e(implode(', ', $migrations['applied'])) ?></p>
+    <p class="muted"><?= ate('Все применены: %s', implode(', ', $migrations['applied'])) ?></p>
   <?php endif; ?>
 </div>

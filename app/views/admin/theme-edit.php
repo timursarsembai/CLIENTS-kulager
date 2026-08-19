@@ -15,10 +15,10 @@ declare(strict_types=1);
  */
 ?>
 <div class="crumbs">
-  <a href="<?= e($admin->url('themes')) ?>">Оформление</a> → <?= e((string) $theme['name']) ?>
+  <a href="<?= e($admin->url('themes')) ?>"><?= ate('Оформление') ?></a> → <?= ate((string) $theme['name']) ?>
 </div>
 
-<h1 class="page-title"><?= e((string) $theme['name']) ?></h1>
+<h1 class="page-title"><?= ate((string) $theme['name']) ?></h1>
 
 <form method="post" action="<?= e($admin->url('themes/' . $theme['id'])) ?>" class="theme-form" data-theme-form>
   <?= Csrf::field() ?>
@@ -46,15 +46,15 @@ declare(strict_types=1);
     <div>
       <?php foreach (ThemeRepository::GROUPS as $group): ?>
         <div class="card">
-          <h2 class="card__title"><?= e((string) $group['title']) ?></h2>
-          <p class="card__lead"><?= e((string) $group['hint']) ?></p>
+          <h2 class="card__title"><?= ate((string) $group['title']) ?></h2>
+          <p class="card__lead"><?= ate((string) $group['hint']) ?></p>
 
           <div class="theme-vars">
             <?php foreach ($group['vars'] as $key => [$label, $type, $where]): ?>
               <?php $value = (string) ($vars[$key] ?? ''); ?>
 
               <label class="field theme-var">
-                <span class="field__label"><?= e($label) ?></span>
+                <span class="field__label"><?= ate($label) ?></span>
 
                 <?php if ($type === 'color'): ?>
                   <span class="theme-var__pair">
@@ -75,7 +75,7 @@ declare(strict_types=1);
                   <span class="theme-var__pair" data-theme-alpha>
                     <input type="color" value="<?= e($hex) ?>" data-alpha-color>
                     <input type="range" min="0" max="100" step="1" value="<?= e((string) round($alpha * 100)) ?>"
-                           data-alpha-range title="Прозрачность">
+                           data-alpha-range title="<?= ate('Прозрачность') ?>">
                     <output data-alpha-out><?= e((string) round($alpha * 100)) ?>%</output>
                     <input type="hidden" name="vars[<?= e($key) ?>]" value="<?= e($value) ?>"
                            data-theme-value data-var="<?= e($key) ?>">
@@ -86,7 +86,7 @@ declare(strict_types=1);
                          data-theme-value data-var="<?= e($key) ?>">
                 <?php endif; ?>
 
-                <span class="field__hint"><?= e($where) ?></span>
+                <span class="field__hint"><?= ate($where) ?></span>
               </label>
             <?php endforeach; ?>
           </div>
@@ -107,8 +107,8 @@ declare(strict_types=1);
           <div class="theme-preview__kicker"><?= ate('Надзаголовок') ?></div>
           <div class="theme-preview__title"><?= ate('Заголовок страницы') ?></div>
           <p class="theme-preview__text">
-            Обычный текст блока и <a href="#" onclick="return false"><?= ate('ссылка внутри него') ?></a>.
-            Приглушённая строка — подпись под карточкой.
+            <?= at('Обычный текст блока и %s.', '<a href="#" onclick="return false">' . ate('ссылка внутри него') . '</a>') ?>
+            <?= ate('Приглушённая строка — подпись под карточкой.') ?>
           </p>
 
           <div class="theme-preview__row">
@@ -129,6 +129,6 @@ declare(strict_types=1);
 
   <div class="block-form__actions">
     <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
-    <a href="<?= e($admin->url('themes')) ?>" class="btn">К списку тем</a>
+    <a href="<?= e($admin->url('themes')) ?>" class="btn"><?= ate('К списку тем') ?></a>
   </div>
 </form>

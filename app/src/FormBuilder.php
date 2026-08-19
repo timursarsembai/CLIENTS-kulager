@@ -53,8 +53,8 @@ final class FormBuilder
 
     private static function input(array $field, string $name, mixed $value): string
     {
-        $label = (string) ($field['label'] ?? '');
-        $hint = isset($field['hint']) ? '<span class="field__hint">' . e((string) $field['hint']) . '</span>' : '';
+        $label = at((string) ($field['label'] ?? ''));
+        $hint = isset($field['hint']) ? '<span class="field__hint">' . ate((string) $field['hint']) . '</span>' : '';
         $required = !empty($field['required']) ? ' required' : '';
         $type = $field['type'] ?? 'string';
 
@@ -89,7 +89,7 @@ final class FormBuilder
         };
 
         return '<label class="field">'
-            . '<span class="field__label">' . e($label) . ($required !== '' ? ' <i>обязательно</i>' : '') . '</span>'
+            . '<span class="field__label">' . e($label) . ($required !== '' ? ' <i>' . ate('обязательно') . '</i>' : '') . '</span>'
             . $control
             . $hint
             . '</label>';
@@ -101,7 +101,7 @@ final class FormBuilder
 
         foreach ($field['options'] ?? [] as $key => $title) {
             $selected = (string) $key === $value ? ' selected' : '';
-            $html .= '<option value="' . e((string) $key) . '"' . $selected . '>' . e((string) $title) . '</option>';
+            $html .= '<option value="' . e((string) $key) . '"' . $selected . '>' . ate((string) $title) . '</option>';
         }
 
         return $html . '</select>';
@@ -116,7 +116,7 @@ final class FormBuilder
     private static function section(string $name, string $value): string
     {
         $html = '<select name="' . e($name) . '" data-page-source>'
-            . '<option value="">Все страницы</option>';
+            . '<option value="">' . ate('Все страницы') . '</option>';
 
         foreach (PageRepository::sections() as $code => $title) {
             if ($code === '') {
@@ -158,14 +158,14 @@ final class FormBuilder
 
         $html = '<span class="page-field" data-page-field>'
             . '<select data-page-select' . ($custom ? '' : ' name="' . e($name) . '"') . '>'
-            . '<option value="">— без ссылки —</option>';
+            . '<option value="">' . ate('— без ссылки —') . '</option>';
 
         foreach ($grouped as $section => $pages) {
-            $html .= '<optgroup label="' . e($sections[$section] ?? $section) . '">';
+            $html .= '<optgroup label="' . ate($sections[$section] ?? $section) . '">';
 
             foreach ($pages as $page) {
                 $selected = !$custom && $page['url'] === $value ? ' selected' : '';
-                $title = $page['title'] . ($page['published'] ? '' : ' (черновик)');
+                $title = $page['title'] . ($page['published'] ? '' : at(' (черновик)'));
 
                 $html .= '<option value="' . e($page['url']) . '" data-section="' . e($section) . '"'
                     . $selected . '>' . e($title) . ' — /' . e($page['url']) . '</option>';
@@ -175,7 +175,7 @@ final class FormBuilder
         }
 
         $html .= '<option value="__custom__" data-page-custom' . ($custom ? ' selected' : '') . '>'
-            . 'Другой адрес…</option>'
+            . ate('Другой адрес…') . '</option>'
             . '</select>'
             /*
              * Имя поля всегда стоит ровно на одном из двух элементов — на том,
@@ -185,7 +185,7 @@ final class FormBuilder
             . '<input type="text" class="page-field__custom" data-page-input'
             . ($custom ? ' name="' . e($name) . '"' : '')
             . ' value="' . e($custom ? $value : '') . '"'
-            . ' placeholder="#anchor или https://…"' . ($custom ? '' : ' hidden') . '>'
+            . ' placeholder="' . ate('#anchor или https://…') . '"' . ($custom ? '' : ' hidden') . '>'
             . '</span>';
 
         return $html;
@@ -203,11 +203,11 @@ final class FormBuilder
 
         return '<div class="richtext" data-richtext>'
             . '<div class="richtext__tools">'
-            . '<button type="button" data-cmd="bold" title="Жирный"><b>Ж</b></button>'
-            . '<button type="button" data-cmd="italic" title="Курсив"><i>К</i></button>'
-            . '<button type="button" data-cmd="insertUnorderedList" title="Список">•</button>'
-            . '<button type="button" data-cmd="createLink" title="Ссылка">🔗</button>'
-            . '<button type="button" data-cmd="removeFormat" title="Убрать оформление">✕</button>'
+            . '<button type="button" data-cmd="bold" title="' . ate('Жирный') . '"><b>Ж</b></button>'
+            . '<button type="button" data-cmd="italic" title="' . ate('Курсив') . '"><i>К</i></button>'
+            . '<button type="button" data-cmd="insertUnorderedList" title="' . ate('Список') . '">•</button>'
+            . '<button type="button" data-cmd="createLink" title="' . ate('Ссылка') . '">🔗</button>'
+            . '<button type="button" data-cmd="removeFormat" title="' . ate('Убрать оформление') . '">✕</button>'
             . '</div>'
             . '<div class="richtext__area" contenteditable="true" data-richtext-area>' . $value . '</div>'
             . '<input type="hidden" name="' . e($name) . '" value="' . e($value) . '" data-richtext-value>'
@@ -244,8 +244,8 @@ final class FormBuilder
     private static function group(array $field, string $name, array $values): string
     {
         return '<fieldset class="group">'
-            . '<legend>' . e((string) ($field['label'] ?? '')) . '</legend>'
-            . (isset($field['hint']) ? '<p class="group__hint">' . e((string) $field['hint']) . '</p>' : '')
+            . '<legend>' . ate((string) ($field['label'] ?? '')) . '</legend>'
+            . (isset($field['hint']) ? '<p class="group__hint">' . ate((string) $field['hint']) . '</p>' : '')
             . self::fieldsRaw($field['fields'], $values, $name)
             . '</fieldset>';
     }
@@ -253,7 +253,7 @@ final class FormBuilder
     private static function list(array $field, string $name, array $values): string
     {
         $of = $field['of'];
-        $label = (string) ($field['label'] ?? '');
+        $label = at((string) ($field['label'] ?? ''));
         $max = isset($field['max']) ? ' data-list-max="' . (int) $field['max'] . '"' : '';
 
         $items = '';
@@ -264,7 +264,7 @@ final class FormBuilder
         return '<div class="list-field" data-list' . $max . '>'
             . '<div class="list-field__head">'
             . '<span class="field__label">' . e($label) . '</span>'
-            . (isset($field['hint']) ? '<span class="field__hint">' . e((string) $field['hint']) . '</span>' : '')
+            . (isset($field['hint']) ? '<span class="field__hint">' . ate((string) $field['hint']) . '</span>' : '')
             . '</div>'
             . '<div class="list-field__items" data-list-items>' . $items . '</div>'
             . '<template data-list-template>' . self::listItem($of, $name, self::INDEX_PLACEHOLDER, null) . '</template>'

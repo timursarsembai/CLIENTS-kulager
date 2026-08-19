@@ -17,23 +17,23 @@ declare(strict_types=1);
 $base = $admin->url('page/' . $page['id'] . '/' . $locale);
 ?>
 <div class="crumbs">
-  <a href="<?= e($admin->url('pages')) ?>">Страницы</a> →
+  <a href="<?= e($admin->url('pages')) ?>"><?= ate('Страницы') ?></a> →
   <a href="<?= e($base) ?>"><?= e($page['page_key']) ?></a> →
-  <?= e((string) $definition['title']) ?>
+  <?= ate((string) $definition['title']) ?>
 </div>
 
-<h1 class="page-title"><?= e((string) $definition['title']) ?></h1>
+<h1 class="page-title"><?= ate((string) $definition['title']) ?></h1>
 
 <?php if (isset($definition['hint'])): ?>
-  <p class="lead-text"><?= e((string) $definition['hint']) ?></p>
+  <p class="lead-text"><?= ate((string) $definition['hint']) ?></p>
 <?php endif; ?>
 
 <?php if ($errors !== []): ?>
   <div class="notice notice--error">
-    Не сохранено — проверьте поля:
+    <?= ate('Не сохранено — проверьте поля:') ?>
     <ul>
       <?php foreach ($errors as $message): ?>
-        <li><?= e($message) ?></li>
+        <li><?= ate($message) ?></li>
       <?php endforeach; ?>
     </ul>
   </div>
@@ -46,7 +46,7 @@ $base = $admin->url('page/' . $page['id'] . '/' . $locale);
 
   <div class="block-form__actions">
     <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
-    <a href="<?= e($base) ?>" class="btn">Отмена</a>
+    <a href="<?= e($base) ?>" class="btn"><?= ate('Отмена') ?></a>
 
     <span class="block-form__spacer"></span>
 
@@ -55,6 +55,6 @@ $base = $admin->url('page/' . $page['id'] . '/' . $locale);
 </form>
 
 <form method="post" action="<?= e($base . '/block/' . $block['id'] . '/delete') ?>"
-      id="block-delete" data-confirm="Удалить блок безвозвратно?">
+      id="block-delete" data-confirm="<?= ate('Удалить блок безвозвратно?') ?>">
   <?= Csrf::field() ?>
 </form>

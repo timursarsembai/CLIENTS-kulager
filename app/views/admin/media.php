@@ -18,8 +18,8 @@ declare(strict_types=1);
 
 <?php if (!$writable): ?>
   <div class="notice notice--error">
-    Каталог <code>assets/uploads</code> недоступен для записи. На хостинге выставьте ему права 755
-    (или 775), иначе загрузка работать не будет.
+    <?= at('Каталог %s недоступен для записи. На хостинге выставьте ему права 755 (или 775), иначе загрузка работать не будет.',
+            '<code>assets/uploads</code>') ?>
   </div>
 <?php endif; ?>
 
@@ -37,8 +37,7 @@ declare(strict_types=1);
       <span class="field__label"><?= ate('Файлы') ?></span>
       <input type="file" name="files[]" multiple accept="image/jpeg,image/png,image/webp,image/svg+xml" required>
       <span class="field__hint">
-        JPEG, PNG, WebP или SVG. Не больше <?= e((string) $limit) ?> за файл.
-        Для больших фотографий сами создадим уменьшенные копии.
+        <?= ate('JPEG, PNG, WebP или SVG. Не больше %s за файл. Для больших фотографий сами создадим уменьшенные копии.', $limit) ?>
       </span>
     </label>
 
@@ -67,7 +66,7 @@ declare(strict_types=1);
             <div class="media__name" title="<?= e((string) $item['path']) ?>"><?= e(basename((string) $item['path'])) ?></div>
             <div class="media__meta">
               <?= e((string) $item['width']) ?>×<?= e((string) $item['height']) ?> ·
-              <?= e((string) round(((int) $item['size']) / 1024)) ?> КБ
+              <?= ate('%d КБ', (int) round(((int) $item['size']) / 1024)) ?>
             </div>
 
             <details class="media__details">
@@ -91,7 +90,7 @@ declare(strict_types=1);
             </details>
 
             <form method="post" action="<?= e($admin->url('media/' . $item['id'] . '/delete')) ?>"
-                  data-confirm="Удалить файл вместе с уменьшенными копиями?">
+                  data-confirm="<?= ate('Удалить файл вместе с уменьшенными копиями?') ?>">
               <?= Csrf::field() ?>
               <button type="submit" class="link link--danger"><?= ate('Удалить') ?></button>
             </form>

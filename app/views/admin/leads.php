@@ -13,10 +13,10 @@ declare(strict_types=1);
  */
 
 $labels = [
-    'new'     => 'Новые',
-    'in_work' => 'В работе',
-    'done'    => 'Обработаны',
-    'spam'    => 'Спам',
+    'new'     => at('Новые'),
+    'in_work' => at('В работе'),
+    'done'    => at('Обработаны'),
+    'spam'    => at('Спам'),
 ];
 ?>
 <h1 class="page-title"><?= ate('Заявки') ?></h1>
@@ -27,7 +27,7 @@ $labels = [
 
 <div class="btn-row">
   <a href="<?= e($admin->url('leads')) ?>" class="btn<?= $status === '' ? ' btn--primary' : '' ?>">
-    Все
+    <?= ate('Все') ?>
   </a>
   <?php foreach ($labels as $key => $label): ?>
     <a href="<?= e($admin->url('leads') . '?status=' . $key) ?>"
@@ -105,7 +105,7 @@ $labels = [
               <?php endif; ?>
 
               <form method="post" action="<?= e($admin->url('leads/' . $lead['id'] . '/delete')) ?>"
-                    class="inline-form" data-confirm="Удалить заявку?">
+                    class="inline-form" data-confirm="<?= ate('Удалить заявку?') ?>">
                 <?= Csrf::field() ?>
                 <button type="submit" class="link link--danger"><?= ate('Удалить') ?></button>
               </form>
@@ -128,7 +128,7 @@ $labels = [
       <label class="field">
         <span class="field__label"><?= ate('Токен бота') ?></span>
         <input type="text" name="telegram_token" value=""
-               placeholder="<?= $telegram['token'] ? 'сохранён — оставьте пустым, чтобы не менять' : '123456:AA…' ?>">
+               placeholder="<?= $telegram['token'] ? ate('сохранён — оставьте пустым, чтобы не менять') : '123456:AA…' ?>">
         <span class="field__hint"><?= ate('Выдаёт @BotFather. Показывать его здесь мы не будем.') ?></span>
       </label>
 

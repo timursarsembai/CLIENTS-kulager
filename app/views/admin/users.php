@@ -16,10 +16,9 @@ declare(strict_types=1);
 
 <?php if ($created !== []): ?>
   <div class="notice notice--warn">
-    <strong>Пароль для <?= e((string) $created['email']) ?>:</strong>
+    <strong><?= ate('Пароль для %s:', (string) $created['email']) ?></strong>
     <span class="backup-codes"><code><?= e((string) $created['password']) ?></code></span>
-    Передайте его лично — здесь он больше не покажется. При первом входе
-    пусть сменит его в разделе «Профиль».
+    <?= ate('Передайте его лично — здесь он больше не покажется. При первом входе пусть сменит его в разделе «Профиль».') ?>
   </div>
 <?php endif; ?>
 
@@ -55,8 +54,8 @@ declare(strict_types=1);
             <form method="post" action="<?= e($admin->url('users/' . $id . '/role')) ?>" class="menu-add__body">
               <?= Csrf::field() ?>
               <select name="role">
-                <option value="editor"<?= $user['role'] === 'editor' ? ' selected' : '' ?>>Редактор</option>
-                <option value="admin"<?= $user['role'] === 'admin' ? ' selected' : '' ?>>Администратор</option>
+                <option value="editor"<?= $user['role'] === 'editor' ? ' selected' : '' ?>><?= ate('Редактор') ?></option>
+                <option value="admin"<?= $user['role'] === 'admin' ? ' selected' : '' ?>><?= ate('Администратор') ?></option>
               </select>
               <button type="submit" class="btn btn--small"><?= ate('Сменить') ?></button>
             </form>
@@ -76,14 +75,14 @@ declare(strict_types=1);
 
           <td class="table__actions">
             <form method="post" action="<?= e($admin->url('users/' . $id . '/password')) ?>" class="inline-form"
-                  data-confirm="Сбросить пароль? Нынешний перестанет работать.">
+                  data-confirm="<?= ate('Сбросить пароль? Нынешний перестанет работать.') ?>">
               <?= Csrf::field() ?>
               <button type="submit" class="link"><?= ate('Сбросить пароль') ?></button>
             </form>
 
             <?php if (!empty($user['totp_enabled'])): ?>
               <form method="post" action="<?= e($admin->url('users/' . $id . '/twofa')) ?>" class="inline-form"
-                    data-confirm="Отключить вход по коду? Понадобится, если человек потерял телефон.">
+                    data-confirm="<?= ate('Отключить вход по коду? Понадобится, если человек потерял телефон.') ?>">
                 <?= Csrf::field() ?>
                 <button type="submit" class="link"><?= ate('Сбросить код') ?></button>
               </form>
@@ -92,11 +91,11 @@ declare(strict_types=1);
             <?php if (!$isMe): ?>
               <form method="post" action="<?= e($admin->url('users/' . $id . '/toggle')) ?>" class="inline-form">
                 <?= Csrf::field() ?>
-                <button type="submit" class="link"><?= $active ? 'Закрыть доступ' : 'Открыть доступ' ?></button>
+                <button type="submit" class="link"><?= $active ? ate('Закрыть доступ') : ate('Открыть доступ') ?></button>
               </form>
 
               <form method="post" action="<?= e($admin->url('users/' . $id . '/delete')) ?>" class="inline-form"
-                    data-confirm="Удалить пользователя? Его записи в журнале останутся.">
+                    data-confirm="<?= ate('Удалить пользователя? Его записи в журнале останутся.') ?>">
                 <?= Csrf::field() ?>
                 <button type="submit" class="link link--danger"><?= ate('Удалить') ?></button>
               </form>
@@ -115,8 +114,8 @@ declare(strict_types=1);
   <form method="post" action="<?= e($admin->url('users/add')) ?>" class="menu-add__body">
     <?= Csrf::field() ?>
 
-    <input type="email" name="email" placeholder="Почта" required>
-    <input type="text" name="name" placeholder="Имя (необязательно)">
+    <input type="email" name="email" placeholder="<?= ate('Почта') ?>" required>
+    <input type="text" name="name" placeholder="<?= ate('Имя (необязательно)') ?>">
 
     <select name="role">
       <option value="editor"><?= ate('Редактор') ?></option>

@@ -24,7 +24,7 @@ declare(strict_types=1);
       $isDefault = $value === $default;
       ?>
       <label class="field">
-        <span class="field__label"><?= e((string) $field['label']) ?></span>
+        <span class="field__label"><?= ate((string) $field['label']) ?></span>
 
         <?php if (($field['type'] ?? '') === 'image'): ?>
           <?php /* Логотип выбирается из медиатеки — тем же окном, что и картинки блоков */ ?>
@@ -35,7 +35,7 @@ declare(strict_types=1);
         <?php endif; ?>
 
         <?php if (isset($field['hint'])): ?>
-          <span class="field__hint"><?= e((string) $field['hint']) ?></span>
+          <span class="field__hint"><?= ate((string) $field['hint']) ?></span>
         <?php endif; ?>
       </label>
     <?php endforeach; ?>

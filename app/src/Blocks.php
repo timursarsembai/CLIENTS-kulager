@@ -66,7 +66,7 @@ final class Blocks
         $definition = self::definition($type);
 
         if ($definition === null) {
-            return [[], ['type' => 'Неизвестный тип блока.']];
+            return [[], ['type' => at('Неизвестный тип блока.')]];
         }
 
         $errors = [];
@@ -115,7 +115,7 @@ final class Blocks
             $clean = self::sanitizeValue($field, $value, $key, $errors);
 
             if (!empty($field['required']) && self::isBlank($clean)) {
-                $errors[$key] = 'Поле «' . ($field['label'] ?? $name) . '» обязательно.';
+                $errors[$key] = at('Поле «%s» обязательно.', at((string) ($field['label'] ?? $name)));
             }
 
             // Пустые значения в хранилище не пишем: блок остаётся компактным,

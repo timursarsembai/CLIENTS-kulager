@@ -5,5 +5,5 @@ declare(strict_types=1);
 ?>
 <div class="card card--form">
   <h1 class="card__title"><?= ate('Раздел не найден') ?></h1>
-  <a href="<?= e($admin->url()) ?>" class="btn">На панель</a>
+  <a href="<?= e($admin->url()) ?>" class="btn"><?= ate('На панель') ?></a>
 </div>

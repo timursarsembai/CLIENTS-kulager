@@ -23,15 +23,15 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
 ?>
 <div class="editor-head">
   <div>
-    <div class="crumbs"><a href="<?= e($admin->url('pages')) ?>">Страницы</a> → <?= e($page['page_key']) ?></div>
+    <div class="crumbs"><a href="<?= e($admin->url('pages')) ?>"><?= ate('Страницы') ?></a> → <?= e($page['page_key']) ?></div>
     <h1 class="page-title"><?= e((string) ($localeRow['title'] ?? $page['page_key'])) ?></h1>
 
     <div class="editor-head__meta">
-      <span class="pill pill--<?= $published ? 'ok' : 'draft' ?>"><?= $published ? 'опубликована' : 'черновик' ?></span>
+      <span class="pill pill--<?= $published ? 'ok' : 'draft' ?>"><?= $published ? ate('опубликована') : ate('черновик') ?></span>
       <a href="<?= e($publicUrl) ?>" target="_blank" rel="noopener">/<?= e($slug) ?> ↗</a>
       <a href="<?= e($publicUrl . (str_contains($publicUrl, '?') ? '&' : '?') . 'edit=1') ?>"
-         target="_blank" rel="noopener">править на сайте ↗</a>
-      <a href="<?= e($publicUrl . (str_contains($publicUrl, '?') ? '&' : '?') . 'preview=1') ?>" target="_blank" rel="noopener">Предпросмотр черновика ↗</a>
+         target="_blank" rel="noopener"><?= ate('править на сайте') ?> ↗</a>
+      <a href="<?= e($publicUrl . (str_contains($publicUrl, '?') ? '&' : '?') . 'preview=1') ?>" target="_blank" rel="noopener"><?= ate('Предпросмотр черновика') ?> ↗</a>
     </div>
   </div>
 
@@ -43,10 +43,10 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
     <?php if ($undo !== null): ?>
       <?php /* Возврат к состоянию до последней правки — копирование блоков не должно быть путём в один конец */ ?>
       <form method="post" action="<?= e($base . '/undo') ?>"
-            data-confirm="Вернуть страницу к состоянию до последнего изменения<?= $undo['comment'] !== '' ? ' («' . e((string) $undo['comment']) . '»)' : '' ?>?">
+            data-confirm="<?= ate('Вернуть страницу к состоянию до последнего изменения') ?><?= $undo['comment'] !== '' ? ' («' . e((string) $undo['comment']) . '»)' : '' ?>?">
         <?= Csrf::field() ?>
-        <button type="submit" class="btn" title="<?= e(trim(($undo['comment'] ?: 'последнее изменение') . ', ' . $undo['created_at'])) ?>">
-          Отменить
+        <button type="submit" class="btn" title="<?= e(trim(($undo['comment'] ?: at('последнее изменение')) . ', ' . $undo['created_at'])) ?>">
+          <?= ate('Отменить') ?>
         </button>
       </form>
     <?php endif; ?>
@@ -54,7 +54,7 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
     <form method="post" action="<?= e($base . ($published ? '/unpublish' : '/publish')) ?>">
       <?= Csrf::field() ?>
       <button type="submit" class="btn <?= $published ? '' : 'btn--primary' ?>">
-        <?= $published ? 'Снять с публикации' : 'Опубликовать' ?>
+        <?= $published ? ate('Снять с публикации') : ate('Опубликовать') ?>
       </button>
     </form>
   </div>
@@ -75,23 +75,20 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
         ?>
         <div class="notice notice--<?= $blocks === [] || $notTranslated > 0 ? 'warn' : 'ok' ?>">
           <?php if ($blocks === []): ?>
-            Перевода нет. Можно скопировать блоки из версии
-            «<?= e($site->localeMeta($baseLocale)['name']) ?>» (<?= e((string) $baseBlocks) ?>)
-            и заменить текст.
+            <?= ate('Перевода нет. Можно скопировать блоки из версии «%s» (%d) и заменить текст.',
+                    (string) $site->localeMeta($baseLocale)['name'], (int) $baseBlocks) ?>
           <?php elseif ($notTranslated > 0): ?>
-            Похоже, ещё не переведено блоков: <?= e((string) $notTranslated) ?>
-            из <?= e((string) $translation['total']) ?> — их содержимое совпадает
-            с основным языком.
+            <?= ate('Похоже, ещё не переведено блоков: %d из %d — их содержимое совпадает с основным языком.',
+                    $notTranslated, (int) $translation['total']) ?>
           <?php else: ?>
-            Все <?= e((string) $translation['total']) ?> блоков отличаются от основного
-            языка — перевод выглядит готовым.
+            <?= ate('Все %d блоков отличаются от основного языка — перевод выглядит готовым.', (int) $translation['total']) ?>
           <?php endif; ?>
 
           <form method="post" action="<?= e($base . '/copy') ?>" style="margin-top: 10px"
-                data-confirm="Блоки этой языковой версии будут заменены копией основного языка. Продолжить?">
+                data-confirm="<?= ate('Блоки этой языковой версии будут заменены копией основного языка. Продолжить?') ?>">
             <?= Csrf::field() ?>
             <button type="submit" class="btn btn--small">
-              <?= $blocks === [] ? 'Скопировать блоки из основного языка' : 'Заново скопировать из основного языка' ?>
+              <?= $blocks === [] ? ate('Скопировать блоки из основного языка') : ate('Заново скопировать из основного языка') ?>
             </button>
             <span class="field__hint"><?= ate('Блоки этой версии будут заменены копией основного языка — перевод придётся набрать заново. Если нажали случайно, вернёт кнопка «Отменить» вверху страницы.') ?></span>
           </form>
@@ -101,7 +98,7 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
       <?php if ($blocks === []): ?>
         <p class="muted"><?= ate('Блоков пока нет. Добавьте первый из библиотеки справа.') ?></p>
       <?php else: ?>
-        <p class="hint-line">Перетащите блок за <span class="grip">⋮⋮</span>, чтобы поменять порядок — он сохранится сам.</p>
+        <p class="hint-line"><?= at('Перетащите блок за %s, чтобы поменять порядок — он сохранится сам.', '<span class="grip">⋮⋮</span>') ?></p>
 
         <ol class="blocks" data-blocks data-reorder-url="<?= e($base . '/reorder') ?>" data-token="<?= e(Csrf::token()) ?>">
           <?php foreach ($blocks as $block): ?>
@@ -112,10 +109,10 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
             $preview = (string) ($block['title'] ?? $block['form']['title'] ?? $block['callout']['title'] ?? '');
             ?>
             <li class="block<?= $visible ? '' : ' block--hidden' ?>" id="block-<?= e((string) $id) ?>" data-block-id="<?= e((string) $id) ?>">
-              <span class="block__handle" data-block-handle title="Перетащите, чтобы поменять порядок">⋮⋮</span>
+              <span class="block__handle" data-block-handle title="<?= ate('Перетащите, чтобы поменять порядок') ?>">⋮⋮</span>
 
               <a class="block__body" href="<?= e($base . '/block/' . $id) ?>">
-                <span class="block__type"><?= e(Blocks::title((string) $block['type'])) ?></span>
+                <span class="block__type"><?= ate(Blocks::title((string) $block['type'])) ?></span>
                 <?php if ($preview !== ''): ?>
                   <span class="block__preview"><?= e(mb_substr(strip_tags($preview), 0, 90)) ?></span>
                 <?php endif; ?>
@@ -126,17 +123,17 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
 
                 <form method="post" action="<?= e($base . '/block/' . $id . '/toggle') ?>">
                   <?= Csrf::field() ?>
-                  <button type="submit" class="icon-btn" title="<?= $visible ? 'Скрыть на сайте' : 'Показать на сайте' ?>"><?= $visible ? '👁' : '🚫' ?></button>
+                  <button type="submit" class="icon-btn" title="<?= $visible ? ate('Скрыть на сайте') : ate('Показать на сайте') ?>"><?= $visible ? '👁' : '🚫' ?></button>
                 </form>
 
                 <form method="post" action="<?= e($base . '/block/' . $id . '/duplicate') ?>">
                   <?= Csrf::field() ?>
-                  <button type="submit" class="icon-btn" title="Скопировать">⧉</button>
+                  <button type="submit" class="icon-btn" title="<?= ate('Скопировать') ?>">⧉</button>
                 </form>
 
-                <form method="post" action="<?= e($base . '/block/' . $id . '/delete') ?>" data-confirm="Удалить блок безвозвратно?">
+                <form method="post" action="<?= e($base . '/block/' . $id . '/delete') ?>" data-confirm="<?= ate('Удалить блок безвозвратно?') ?>">
                   <?= Csrf::field() ?>
-                  <button type="submit" class="icon-btn icon-btn--danger" title="Удалить">✕</button>
+                  <button type="submit" class="icon-btn icon-btn--danger" title="<?= ate('Удалить') ?>">✕</button>
                 </form>
               </span>
             </li>
@@ -152,7 +149,7 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
         <?= Csrf::field() ?>
 
         <label class="field">
-          <span class="field__label">Заголовок страницы <i>обязательно</i></span>
+          <span class="field__label"><?= ate('Заголовок страницы') ?> <i><?= ate('обязательно') ?></i></span>
           <input type="text" name="title" value="<?= e((string) ($localeRow['title'] ?? '')) ?>"
                  data-slug-source required>
           <span class="field__hint"><?= ate('Виден во вкладке браузера и в результатах поиска.') ?></span>
@@ -232,16 +229,16 @@ $bar = json_decode((string) ($localeRow['bar_json'] ?? ''), true) ?: [];
 
       <?php foreach ($library as $group => $types): ?>
         <div class="library__group">
-          <div class="library__title"><?= e((string) $group) ?></div>
+          <div class="library__title"><?= ate((string) $group) ?></div>
 
           <?php foreach ($types as $type => $definition): ?>
             <form method="post" action="<?= e($base . '/add') ?>" class="library__item">
               <?= Csrf::field() ?>
               <input type="hidden" name="type" value="<?= e((string) $type) ?>">
-              <button type="submit" class="library__btn" title="<?= e((string) ($definition['hint'] ?? '')) ?>">
-                <span class="library__name"><?= e((string) $definition['title']) ?></span>
+              <button type="submit" class="library__btn" title="<?= ate((string) ($definition['hint'] ?? '')) ?>">
+                <span class="library__name"><?= ate((string) $definition['title']) ?></span>
                 <?php if (isset($definition['hint'])): ?>
-                  <span class="library__hint"><?= e(mb_substr((string) $definition['hint'], 0, 80)) ?></span>
+                  <span class="library__hint"><?= e(mb_substr(at((string) $definition['hint']), 0, 80)) ?></span>
                 <?php endif; ?>
               </button>
             </form>

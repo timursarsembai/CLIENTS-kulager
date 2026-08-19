@@ -22,9 +22,9 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
 
 <?php if ($noindex): ?>
   <div class="notice notice--warn">
-    <strong><?= ate('Сайт закрыт от индексации.') ?></strong> Во все страницы добавлен
-    <code>noindex</code>, robots.txt запрещает обход, карта сайта пустая.
-    Не забудьте снять галочку перед запуском.
+    <strong><?= ate('Сайт закрыт от индексации.') ?></strong>
+    <?= at('Во все страницы добавлен %s, robots.txt запрещает обход, карта сайта пустая. Не забудьте снять галочку перед запуском.',
+           '<code>noindex</code>') ?>
   </div>
 <?php endif; ?>
 
@@ -45,14 +45,14 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
         <label class="field field--check">
           <input type="hidden" name="<?= e($key) ?>" value="">
           <input type="checkbox" name="<?= e($key) ?>" value="1"<?= $value !== '' ? ' checked' : '' ?>>
-          <span class="field__label"><?= e((string) $field['label']) ?></span>
+          <span class="field__label"><?= ate((string) $field['label']) ?></span>
           <?php if (isset($field['hint'])): ?>
-            <span class="field__hint"><?= e((string) $field['hint']) ?></span>
+            <span class="field__hint"><?= ate((string) $field['hint']) ?></span>
           <?php endif; ?>
         </label>
       <?php else: ?>
         <label class="field">
-          <span class="field__label"><?= e((string) $field['label']) ?></span>
+          <span class="field__label"><?= ate((string) $field['label']) ?></span>
 
           <?php if ($type === 'text'): ?>
             <textarea name="<?= e($key) ?>" rows="3"><?= e($value) ?></textarea>
@@ -63,7 +63,7 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
           <?php endif; ?>
 
           <?php if (isset($field['hint'])): ?>
-            <span class="field__hint"><?= e((string) $field['hint']) ?></span>
+            <span class="field__hint"><?= ate((string) $field['hint']) ?></span>
           <?php endif; ?>
         </label>
       <?php endif; ?>
@@ -83,7 +83,7 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
     <?php foreach ($counters as $key => $field): ?>
       <?php $value = (string) ($values[$key] ?? ''); ?>
       <label class="field">
-        <span class="field__label"><?= e((string) $field['label']) ?></span>
+        <span class="field__label"><?= ate((string) $field['label']) ?></span>
 
         <?php if (($field['type'] ?? '') === 'text'): ?>
           <textarea name="<?= e($key) ?>" rows="4"><?= e($value) ?></textarea>
@@ -91,7 +91,7 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
           <input type="text" name="<?= e($key) ?>" value="<?= e($value) ?>">
         <?php endif; ?>
 
-        <span class="field__hint"><?= e((string) ($field['hint'] ?? '')) ?></span>
+        <span class="field__hint"><?= ate((string) ($field['hint'] ?? '')) ?></span>
       </label>
     <?php endforeach; ?>
 
@@ -102,7 +102,7 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
 <div class="card">
   <div class="card__head">
     <h2 class="card__title"><?= ate('Страницы') ?></h2>
-    <span class="muted">с замечаниями: <?= e((string) count($withIssues)) ?> из <?= e((string) count($pages)) ?></span>
+    <span class="muted"><?= ate('с замечаниями: %d из %d', count($withIssues), count($pages)) ?></span>
   </div>
 
   <p class="card__lead"><?= ate('Заголовок читается в выдаче примерно до 70 знаков, описание — до 200. Длиннее не ошибка, но поисковик обрежет.') ?></p>
@@ -138,7 +138,7 @@ $withIssues = array_filter($pages, static fn (array $row): bool => $row['issues'
               <span class="pill pill--ok"><?= ate('в порядке') ?></span>
             <?php else: ?>
               <?php foreach ($row['issues'] as $issue): ?>
-                <span class="pill pill--warn"><?= e($issue) ?></span>
+                <span class="pill pill--warn"><?= ate($issue) ?></span>
               <?php endforeach; ?>
             <?php endif; ?>
           </td>

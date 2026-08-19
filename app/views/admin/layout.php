@@ -59,7 +59,7 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 
 <?php if ($user): ?>
 <header class="topbar" data-topbar>
-  <a href="<?= e($admin->url()) ?>" class="topbar__brand">KULAGER<span>админка</span></a>
+  <a href="<?= e($admin->url()) ?>" class="topbar__brand">KULAGER<span><?= ate('админка') ?></span></a>
 
   <?php
   /* Пункты меню: раздел => подпись. Открытый подсвечивается */
@@ -84,12 +84,20 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
   $current = $admin->section() === 'page' ? 'pages' : $admin->section();
   ?>
 
-  <?php /* На телефоне разделы прячутся за этой кнопкой */ ?>
-  <button type="button" class="btn btn--small topbar__toggle" data-topbar-toggle aria-expanded="false">
-    <?= ate('Разделы') ?>
+  <?php /* На телефоне разделы уезжают в выдвижную панель за этой кнопкой */ ?>
+  <button type="button" class="topbar__burger" data-topbar-toggle aria-expanded="false"
+          aria-controls="admin-nav" aria-label="<?= ate('Разделы') ?>" title="<?= ate('Разделы') ?>">
+    <span></span><span></span><span></span>
   </button>
 
-  <nav class="topbar__nav">
+  <nav class="topbar__nav" id="admin-nav">
+    <?php /* Видна только на телефоне: панель перекрывает шапку целиком */ ?>
+    <div class="topbar__nav-head">
+      <span><?= ate('Разделы') ?></span>
+      <button type="button" class="topbar__nav-close" data-topbar-close
+              aria-label="<?= ate('Закрыть') ?>" title="<?= ate('Закрыть') ?>">&times;</button>
+    </div>
+
     <?php foreach ($menu as $key => $label): ?>
       <a href="<?= e($admin->url($key)) ?>"<?= $current === $key ? ' class="is-active" aria-current="page"' : '' ?>>
         <?= e($label) ?>
@@ -119,12 +127,22 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
       <?= e($user['name'] ?: $user['email']) ?>
     </a>
 
+    <?php /* Выход — значком: подпись занимала место, а действие узнаётся по иконке */ ?>
     <form method="post" action="<?= e($admin->url('logout')) ?>">
       <?= Csrf::field() ?>
-      <button type="submit" class="btn btn--small"><?= ate('Выйти') ?></button>
+      <button type="submit" class="btn btn--small btn--icon"
+              title="<?= ate('Выйти') ?>" aria-label="<?= ate('Выйти') ?>">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+          <path d="M6.5 2.5h-4v11h4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <path d="M9 5l3 3-3 3M12 8H6" fill="none" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+      </button>
     </form>
   </div>
 </header>
+
+<?php /* Затемнение под выдвижной панелью: закрывает её по касанию мимо */ ?>
+<div class="topbar__scrim" data-topbar-scrim></div>
 <?php endif; ?>
 
 <main class="<?= $user ? 'shell' : 'shell shell--narrow' ?>">

@@ -17,7 +17,7 @@ $twofa = !empty($user['totp_enabled']);
 <div class="card card--form">
   <h2 class="card__title"><?= ate('Смена пароля') ?></h2>
   <p class="card__lead">
-    <?= e($user['email']) ?> — <?= $auth->isAdmin() ? 'администратор' : 'редактор' ?>.
+    <?= e($user['email']) ?> — <?= $auth->isAdmin() ? ate('администратор') : ate('редактор') ?>.
   </p>
 
   <form method="post" action="<?= e($admin->url('profile')) ?>">
@@ -50,20 +50,18 @@ $twofa = !empty($user['totp_enabled']);
   <h2 class="card__title"><?= ate('Вход по одноразовому коду') ?></h2>
 
   <p class="card__lead">
-    Второй шаг входа: после пароля админка спросит шестизначный код из
-    приложения-аутентификатора. Пароль, подсмотренный или подобранный,
-    сам по себе перестаёт открывать доступ.
+    <?= ate('Второй шаг входа: после пароля админка спросит шестизначный код из приложения-аутентификатора. Пароль, подсмотренный или подобранный, сам по себе перестаёт открывать доступ.') ?>
     <?php if ($twofa): ?>
-      Сейчас <strong><?= ate('включён') ?></strong>.
+      <?= at('Сейчас %s.', '<strong>' . ate('включён') . '</strong>') ?>
     <?php else: ?>
-      Сейчас выключен.
+      <?= ate('Сейчас выключен.') ?>
     <?php endif; ?>
   </p>
 
   <?php if ($codes !== []): ?>
     <div class="notice notice--warn">
-      <strong><?= ate('Запасные коды.') ?></strong> Каждый срабатывает один раз — понадобятся,
-      если телефон потеряется. Сохраните их сейчас: снова показать нельзя.
+      <strong><?= ate('Запасные коды.') ?></strong>
+      <?= ate('Каждый срабатывает один раз — понадобятся, если телефон потеряется. Сохраните их сейчас: снова показать нельзя.') ?>
       <div class="backup-codes">
         <?php foreach ($codes as $code): ?><code><?= e($code) ?></code><?php endforeach; ?>
       </div>
@@ -78,14 +76,14 @@ $twofa = !empty($user['totp_enabled']);
 
       <p>
         <a href="<?= e(Totp::uri($secret, (string) $user['email'], 'KULAGER')) ?>">
-          Открыть в приложении на этом устройстве
+          <?= ate('Открыть в приложении на этом устройстве') ?>
         </a>
       </p>
 
       <form method="post" action="<?= e($admin->url('twofa')) ?>" class="menu-add__body">
         <?= Csrf::field() ?>
         <input type="hidden" name="action" value="enable">
-        <input type="text" name="code" inputmode="numeric" placeholder="Код из приложения" required>
+        <input type="text" name="code" inputmode="numeric" placeholder="<?= ate('Код из приложения') ?>" required>
         <button type="submit" class="btn btn--primary"><?= ate('Включить') ?></button>
       </form>
     </div>
@@ -98,7 +96,7 @@ $twofa = !empty($user['totp_enabled']);
   <?php else: ?>
     <div class="btn-row">
       <form method="post" action="<?= e($admin->url('twofa')) ?>"
-            data-confirm="Перевыпустить запасные коды? Прежние перестанут действовать.">
+            data-confirm="<?= ate('Перевыпустить запасные коды? Прежние перестанут действовать.') ?>">
         <?= Csrf::field() ?>
         <input type="hidden" name="action" value="codes">
         <button type="submit" class="btn"><?= ate('Перевыпустить запасные коды') ?></button>
@@ -106,10 +104,10 @@ $twofa = !empty($user['totp_enabled']);
     </div>
 
     <form method="post" action="<?= e($admin->url('twofa')) ?>" class="menu-add__body"
-          data-confirm="Отключить вход по одноразовому коду?">
+          data-confirm="<?= ate('Отключить вход по одноразовому коду?') ?>">
       <?= Csrf::field() ?>
       <input type="hidden" name="action" value="disable">
-      <input type="password" name="current" placeholder="Текущий пароль" required autocomplete="current-password">
+      <input type="password" name="current" placeholder="<?= ate('Текущий пароль') ?>" required autocomplete="current-password">
       <button type="submit" class="btn btn--danger"><?= ate('Отключить') ?></button>
     </form>
   <?php endif; ?>

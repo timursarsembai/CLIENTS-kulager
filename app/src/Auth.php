@@ -113,7 +113,7 @@ final class Auth
         if ($this->tooManyAttempts($ip, $email)) {
             $this->log('login_blocked', $email);
 
-            return 'Слишком много попыток входа. Повторите через 15 минут.';
+            return at('Слишком много попыток входа. Повторите через 15 минут.');
         }
 
         $user = $this->db->first('SELECT * FROM users WHERE email = :email', ['email' => $email]);
@@ -126,14 +126,14 @@ final class Auth
             $this->recordAttempt($ip, $email);
             $this->log('login_failed', $email, $ip);
 
-            return 'Неверная почта или пароль.';
+            return at('Неверная почта или пароль.');
         }
 
         // Доступ закрыт администратором — пароль правильный, но входа нет
         if (array_key_exists('is_active', $user) && !$user['is_active']) {
             $this->log('login_disabled', $email, $ip);
 
-            return 'Доступ к админке закрыт. Обратитесь к администратору.';
+            return at('Доступ к админке закрыт. Обратитесь к администратору.');
         }
 
         if (password_needs_rehash($hash, PASSWORD_DEFAULT)) {
@@ -220,13 +220,13 @@ final class Auth
         $id = (int) ($_SESSION['pending_user'] ?? 0);
 
         if ($id === 0) {
-            return 'Сессия входа истекла. Введите пароль заново.';
+            return at('Сессия входа истекла. Введите пароль заново.');
         }
 
         $ip = $this->ip();
 
         if ($this->tooManyAttempts($ip, '')) {
-            return 'Слишком много попыток. Повторите через 15 минут.';
+            return at('Слишком много попыток. Повторите через 15 минут.');
         }
 
         $user = $this->db->first('SELECT * FROM users WHERE id = :id', ['id' => $id]);
@@ -234,7 +234,7 @@ final class Auth
         if ($user === null) {
             unset($_SESSION['pending_user']);
 
-            return 'Пользователь не найден.';
+            return at('Пользователь не найден.');
         }
 
         if (Totp::verify((string) $user['totp_secret'], $code)) {
@@ -256,7 +256,7 @@ final class Auth
         $this->recordAttempt($ip, (string) $user['email']);
         $this->log('login_code_failed', (string) $user['email'], $ip);
 
-        return 'Код не подошёл. Проверьте время на телефоне.';
+        return at('Код не подошёл. Проверьте время на телефоне.');
     }
 
     /** Запасные коды: десять одноразовых строк, храним только их хеши. */

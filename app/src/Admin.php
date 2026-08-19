@@ -212,7 +212,7 @@ final class Admin
     private function inlineSave(): void
     {
         if (!$this->isPost()) {
-            $this->json(['error' => 'Ожидался POST.'], 405);
+            $this->json(['error' => at('Ожидался POST.')], 405);
 
             return;
         }
@@ -249,7 +249,7 @@ final class Admin
         $block = $this->pages->findBlock((int) ($_POST['block'] ?? 0));
 
         if ($block === null || $path === '') {
-            $this->json(['error' => 'Блок не найден.'], 404);
+            $this->json(['error' => at('Блок не найден.')], 404);
 
             return;
         }
@@ -257,7 +257,7 @@ final class Admin
         $data = $block['data'];
 
         if (!self::setByPath($data, explode('.', $path), $value)) {
-            $this->json(['error' => 'Такого поля в блоке нет.'], 422);
+            $this->json(['error' => at('Такого поля в блоке нет.')], 422);
 
             return;
         }
@@ -294,7 +294,7 @@ final class Admin
         $item = $nav->find($id);
 
         if ($item === null || !in_array($field, ['title', 'full_title', 'footer_title'], true)) {
-            $this->json(['error' => 'Пункт меню не найден.'], 404);
+            $this->json(['error' => at('Пункт меню не найден.')], 404);
 
             return;
         }
@@ -302,7 +302,7 @@ final class Admin
         $value = trim(strip_tags($value));
 
         if ($value === '') {
-            $this->json(['error' => 'Название не может быть пустым.'], 422);
+            $this->json(['error' => at('Название не может быть пустым.')], 422);
 
             return;
         }
@@ -327,7 +327,7 @@ final class Admin
     private function inlineSaveText(string $key, string $locale, string $value): void
     {
         if (!isset($this->site->locales()[$locale])) {
-            $this->json(['error' => 'Неизвестный язык.'], 422);
+            $this->json(['error' => at('Неизвестный язык.')], 422);
 
             return;
         }
@@ -345,7 +345,7 @@ final class Admin
     private function inlineSaveSetting(string $key, string $value): void
     {
         if (!isset(Settings::FIELDS[$key])) {
-            $this->json(['error' => 'Такой настройки нет.'], 422);
+            $this->json(['error' => at('Такой настройки нет.')], 422);
 
             return;
         }
@@ -369,7 +369,7 @@ final class Admin
         $row = $this->pages->locale($pageId, $locale);
 
         if ($row === null || !str_starts_with($field, 'bar.')) {
-            $this->json(['error' => 'Такого поля у страницы нет.'], 422);
+            $this->json(['error' => at('Такого поля у страницы нет.')], 422);
 
             return;
         }
@@ -377,7 +377,7 @@ final class Admin
         $key = substr($field, 4);
 
         if (!in_array($key, ['title', 'subtitle', 'label', 'message'], true)) {
-            $this->json(['error' => 'Такого поля у панели нет.'], 422);
+            $this->json(['error' => at('Такого поля у панели нет.')], 422);
 
             return;
         }
@@ -456,7 +456,7 @@ final class Admin
             return true;
         }
 
-        $this->flash('Раздел доступен только администратору.');
+        $this->flash(at('Раздел доступен только администратору.'));
         $this->redirect('');
 
         return false;
@@ -532,15 +532,15 @@ final class Admin
             $name = trim((string) ($_POST['name'] ?? ''));
 
             if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors['email'] = 'Укажите корректный адрес почты.';
+                $errors['email'] = at('Укажите корректный адрес почты.');
             }
 
             if (mb_strlen($password) < 10) {
-                $errors['password'] = 'Пароль должен быть не короче 10 символов.';
+                $errors['password'] = at('Пароль должен быть не короче 10 символов.');
             }
 
             if ($password !== (string) ($_POST['password_confirm'] ?? '')) {
-                $errors['password_confirm'] = 'Пароли не совпадают.';
+                $errors['password_confirm'] = at('Пароли не совпадают.');
             }
 
             if ($errors === []) {
@@ -612,7 +612,7 @@ final class Admin
         // При первом запуске пользователей ещё нет — тогда миграции открыты,
         // иначе схему меняет только администратор
         if ($this->auth->hasUsers() && !$this->auth->isAdmin()) {
-            $this->flash('Обновление базы доступно только администратору.');
+            $this->flash(at('Обновление базы доступно только администратору.'));
             $this->redirect('');
 
             return;
@@ -620,7 +620,7 @@ final class Admin
 
         if ($this->isPost()) {
             $applied = $this->migrator->migrate();
-            $this->flash(count($applied) . ' миграций применено.');
+            $this->flash(at('Применено миграций: %d.', count($applied)));
             $this->redirect('');
 
             return;
@@ -643,7 +643,7 @@ final class Admin
 
             $settings->save($values);
             $this->auth->log('settings');
-            $this->flash('Настройки сохранены.');
+            $this->flash(at('Настройки сохранены.'));
             $this->redirect('settings');
 
             return;
@@ -666,15 +666,15 @@ final class Admin
             $next = (string) ($_POST['password'] ?? '');
 
             if (!password_verify($current, (string) $this->auth->user()['password_hash'])) {
-                $errors['current'] = 'Текущий пароль указан неверно.';
+                $errors['current'] = at('Текущий пароль указан неверно.');
             }
 
             if (mb_strlen($next) < 10) {
-                $errors['password'] = 'Новый пароль должен быть не короче 10 символов.';
+                $errors['password'] = at('Новый пароль должен быть не короче 10 символов.');
             }
 
             if ($next !== (string) ($_POST['password_confirm'] ?? '')) {
-                $errors['password_confirm'] = 'Пароли не совпадают.';
+                $errors['password_confirm'] = at('Пароли не совпадают.');
             }
 
             if ($errors === []) {
@@ -686,7 +686,7 @@ final class Admin
                 );
 
                 $this->auth->log('password_change');
-                $this->flash('Пароль изменён.');
+                $this->flash(at('Пароль изменён.'));
                 $this->redirect('profile');
 
                 return;
@@ -729,7 +729,7 @@ final class Admin
             $this->db->update('users', ['totp_secret' => $secret, 'totp_enabled' => 0], 'id = :id', ['id' => $id]);
 
             $_SESSION['totp_new_secret'] = $secret;
-            $this->flash('Добавьте ключ в приложение и введите код, чтобы включить.');
+            $this->flash(at('Добавьте ключ в приложение и введите код, чтобы включить.'));
             $this->redirect('profile');
 
             return;
@@ -739,7 +739,7 @@ final class Admin
             $secret = (string) ($user['totp_secret'] ?? '');
 
             if ($secret === '' || !Totp::verify($secret, (string) ($_POST['code'] ?? ''))) {
-                $this->flash('Код не подошёл — вход по коду не включён.');
+                $this->flash(at('Код не подошёл — вход по коду не включён.'));
                 $this->redirect('profile');
 
                 return;
@@ -749,7 +749,7 @@ final class Admin
             $_SESSION['totp_new_codes'] = $this->auth->makeBackupCodes($id);
 
             $this->auth->log('twofa_enabled');
-            $this->flash('Вход по одноразовому коду включён. Сохраните запасные коды.');
+            $this->flash(at('Вход по одноразовому коду включён. Сохраните запасные коды.'));
             $this->redirect('profile');
 
             return;
@@ -758,7 +758,7 @@ final class Admin
         if ($action === 'disable') {
             // Отключение — тоже действие с последствиями, просим пароль
             if (!password_verify((string) ($_POST['current'] ?? ''), (string) $user['password_hash'])) {
-                $this->flash('Текущий пароль указан неверно — ничего не изменилось.');
+                $this->flash(at('Текущий пароль указан неверно — ничего не изменилось.'));
                 $this->redirect('profile');
 
                 return;
@@ -772,7 +772,7 @@ final class Admin
             );
 
             $this->auth->log('twofa_disabled');
-            $this->flash('Вход по одноразовому коду отключён.');
+            $this->flash(at('Вход по одноразовому коду отключён.'));
             $this->redirect('profile');
 
             return;
@@ -781,7 +781,7 @@ final class Admin
         if ($action === 'codes') {
             $_SESSION['totp_new_codes'] = $this->auth->makeBackupCodes($id);
             $this->auth->log('twofa_codes');
-            $this->flash('Запасные коды перевыпущены — прежние больше не действуют.');
+            $this->flash(at('Запасные коды перевыпущены — прежние больше не действуют.'));
             $this->redirect('profile');
 
             return;
@@ -837,7 +837,7 @@ final class Admin
 
         $this->auth->log('import', '', json_encode($result, JSON_UNESCAPED_UNICODE));
 
-        $this->flash(sprintf(
+        $this->flash(at(
             'Перенесено страниц: %d, блоков: %d, пунктов меню: %d.',
             $result['pages'],
             $result['blocks'],
@@ -847,7 +847,7 @@ final class Admin
         // Поля, которых нет в реестре блоков, — их не покажет редактор,
         // хотя на сайте они выводятся. Сигнал дополнить реестр.
         if ($result['unknown'] !== []) {
-            $this->flash('Не описаны в реестре блоков: ' . implode(', ', $result['unknown']));
+            $this->flash(at('Не описаны в реестре блоков: %s', implode(', ', $result['unknown'])));
         }
 
         $this->redirect('pages');
@@ -1005,7 +1005,7 @@ final class Admin
         if ($this->isPost()) {
             $leads->delete($id);
             $this->auth->log('lead_delete', (string) $id);
-            $this->flash('Заявка удалена.');
+            $this->flash(at('Заявка удалена.'));
         }
 
         $this->redirect('leads');
@@ -1042,7 +1042,7 @@ final class Admin
             'notify_error' => mb_substr((string) $error, 0, 255),
         ], 'id = :id', ['id' => $id]);
 
-        $this->flash($error === null ? 'Отправлено в телеграм.' : 'Не отправилось: ' . $error);
+        $this->flash($error === null ? at('Отправлено в телеграм.') : at('Не отправилось: %s', $error));
         $this->redirect('leads');
     }
 
@@ -1062,7 +1062,7 @@ final class Admin
         ]);
 
         $this->auth->log('lead_telegram_settings');
-        $this->flash('Настройки бота сохранены.');
+        $this->flash(at('Настройки бота сохранены.'));
         $this->redirect('leads');
     }
 
@@ -1082,7 +1082,7 @@ final class Admin
         $token = trim($settings->get('telegram_token', ''));
 
         if ($token === '') {
-            $this->flash('Сначала сохраните токен бота.');
+            $this->flash(at('Сначала сохраните токен бота.'));
             $this->redirect('leads');
 
             return;
@@ -1097,7 +1097,7 @@ final class Admin
         $data = is_string($response) ? json_decode($response, true) : null;
 
         if (!is_array($data) || empty($data['ok'])) {
-            $this->flash('Телеграм не ответил: ' . (string) ($data['description'] ?? 'нет связи'));
+            $this->flash(at('Телеграм не ответил: %s', (string) ($data['description'] ?? at('нет связи'))));
             $this->redirect('leads');
 
             return;
@@ -1115,7 +1115,7 @@ final class Admin
         }
 
         if ($chat === null) {
-            $this->flash('Не нашли ни одного сообщения. Напишите боту «/start» и повторите.');
+            $this->flash(at('Не нашли ни одного сообщения. Напишите боту «/start» и повторите.'));
             $this->redirect('leads');
 
             return;
@@ -1123,7 +1123,7 @@ final class Admin
 
         $settings->save(['telegram_chat' => $chat]);
         $this->auth->log('lead_telegram_chat', $chat);
-        $this->flash('Чат определён: ' . $chat);
+        $this->flash(at('Чат определён: %s', $chat));
         $this->redirect('leads');
     }
 
@@ -1132,7 +1132,7 @@ final class Admin
         if ($this->isPost()) {
             $error = $leads->send("<b>Проверка связи</b>\nЕсли вы видите это сообщение, заявки будут приходить сюда.");
 
-            $this->flash($error === null ? 'Сообщение ушло — проверьте телеграм.' : 'Не отправилось: ' . $error);
+            $this->flash($error === null ? at('Сообщение ушло — проверьте телеграм.') : at('Не отправилось: %s', $error));
         }
 
         $this->redirect('leads');
@@ -1200,14 +1200,14 @@ final class Admin
         $role = ($_POST['role'] ?? 'editor') === 'admin' ? 'admin' : 'editor';
 
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->flash('Укажите корректный адрес почты.');
+            $this->flash(at('Укажите корректный адрес почты.'));
             $this->redirect('users');
 
             return;
         }
 
         if ($this->db->first('SELECT id FROM users WHERE email = :email', ['email' => $email]) !== null) {
-            $this->flash('Пользователь с такой почтой уже заведён.');
+            $this->flash(at('Пользователь с такой почтой уже заведён.'));
             $this->redirect('users');
 
             return;
@@ -1229,7 +1229,7 @@ final class Admin
         $_SESSION['new_user'] = ['email' => $email, 'password' => $password];
 
         $this->auth->log('user_add', $email, $role);
-        $this->flash('Пользователь заведён. Передайте пароль лично — второй раз он не покажется.');
+        $this->flash(at('Пользователь заведён. Передайте пароль лично — второй раз он не покажется.'));
         $this->redirect('users');
     }
 
@@ -1245,7 +1245,7 @@ final class Admin
 
         // Последнего администратора не понижаем: иначе управлять станет некому
         if ($role !== 'admin' && $user['role'] === 'admin' && $this->adminCount() <= 1) {
-            $this->flash('Это единственный администратор — роль оставлена прежней.');
+            $this->flash(at('Это единственный администратор — роль оставлена прежней.'));
             $this->redirect('users');
 
             return;
@@ -1253,7 +1253,7 @@ final class Admin
 
         $this->db->update('users', ['role' => $role], 'id = :id', ['id' => $user['id']]);
         $this->auth->log('user_role', (string) $user['email'], $role);
-        $this->flash('Роль изменена.');
+        $this->flash(at('Роль изменена.'));
         $this->redirect('users');
     }
 
@@ -1280,7 +1280,7 @@ final class Admin
         $_SESSION['new_user'] = ['email' => $user['email'], 'password' => $password];
 
         $this->auth->log('user_password_reset', (string) $user['email']);
-        $this->flash('Пароль сброшен. Передайте новый лично — второй раз он не покажется.');
+        $this->flash(at('Пароль сброшен. Передайте новый лично — второй раз он не покажется.'));
         $this->redirect('users');
     }
 
@@ -1295,14 +1295,14 @@ final class Admin
         $active = empty($user['is_active']);
 
         if (!$active && $user['role'] === 'admin' && $this->adminCount() <= 1) {
-            $this->flash('Это единственный администратор — доступ оставлен.');
+            $this->flash(at('Это единственный администратор — доступ оставлен.'));
             $this->redirect('users');
 
             return;
         }
 
         if (!$active && (int) $user['id'] === (int) ($this->auth->user()['id'] ?? 0)) {
-            $this->flash('Себе доступ закрыть нельзя.');
+            $this->flash(at('Себе доступ закрыть нельзя.'));
             $this->redirect('users');
 
             return;
@@ -1310,7 +1310,7 @@ final class Admin
 
         $this->db->update('users', ['is_active' => $active ? 1 : 0], 'id = :id', ['id' => $user['id']]);
         $this->auth->log($active ? 'user_enable' : 'user_disable', (string) $user['email']);
-        $this->flash($active ? 'Доступ открыт.' : 'Доступ закрыт.');
+        $this->flash($active ? at('Доступ открыт.') : at('Доступ закрыт.'));
         $this->redirect('users');
     }
 
@@ -1326,7 +1326,7 @@ final class Admin
             );
 
             $this->auth->log('user_twofa_reset', (string) $user['email']);
-            $this->flash('Вход по коду отключён — пусть настроит заново в своём профиле.');
+            $this->flash(at('Вход по коду отключён — пусть настроит заново в своём профиле.'));
         }
 
         $this->redirect('users');
@@ -1341,14 +1341,14 @@ final class Admin
         }
 
         if ((int) $user['id'] === (int) ($this->auth->user()['id'] ?? 0)) {
-            $this->flash('Себя удалить нельзя.');
+            $this->flash(at('Себя удалить нельзя.'));
             $this->redirect('users');
 
             return;
         }
 
         if ($user['role'] === 'admin' && $this->adminCount() <= 1) {
-            $this->flash('Это единственный администратор — удалять его нельзя.');
+            $this->flash(at('Это единственный администратор — удалять его нельзя.'));
             $this->redirect('users');
 
             return;
@@ -1356,7 +1356,7 @@ final class Admin
 
         $this->db->delete('users', 'id = :id', ['id' => $user['id']]);
         $this->auth->log('user_delete', (string) $user['email']);
-        $this->flash('Пользователь удалён. Его записи в журнале остались.');
+        $this->flash(at('Пользователь удалён. Его записи в журнале остались.'));
         $this->redirect('users');
     }
 
@@ -1421,7 +1421,7 @@ final class Admin
 
             $settings->save($values);
             $this->auth->log('seo_settings');
-            $this->flash('Настройки SEO сохранены.');
+            $this->flash(at('Настройки SEO сохранены.'));
             $this->redirect('seo');
 
             return;
@@ -1571,7 +1571,7 @@ final class Admin
             );
 
             $this->auth->log('theme_save', (string) $theme['theme_key']);
-            $this->flash('Тема сохранена.');
+            $this->flash(at('Тема сохранена.'));
             $this->redirect('themes/' . $theme['id']);
 
             return;
@@ -1598,7 +1598,7 @@ final class Admin
         $source = trim((string) ($_POST['source'] ?? 'dark'));
 
         if ($name === '') {
-            $this->flash('Укажите название темы.');
+            $this->flash(at('Укажите название темы.'));
             $this->redirect('themes');
 
             return;
@@ -1607,14 +1607,14 @@ final class Admin
         $id = $themes->duplicate($source, $name);
 
         if ($id === null) {
-            $this->flash('Не нашли тему, с которой копировать.');
+            $this->flash(at('Не нашли тему, с которой копировать.'));
             $this->redirect('themes');
 
             return;
         }
 
         $this->auth->log('theme_add', $name);
-        $this->flash('Тема создана — поправьте цвета.');
+        $this->flash(at('Тема создана — поправьте цвета.'));
         $this->redirect('themes/' . $id);
     }
 
@@ -1626,7 +1626,7 @@ final class Admin
             if ($themes->exists($key)) {
                 $themes->setDefault($key);
                 $this->auth->log('theme_default', $key);
-                $this->flash('Тема по умолчанию изменена.');
+                $this->flash(at('Тема по умолчанию изменена.'));
             }
         }
 
@@ -1637,8 +1637,8 @@ final class Admin
     {
         if ($this->isPost()) {
             $themes->delete((int) $theme['id'])
-                ? $this->flash('Тема удалена.')
-                : $this->flash('Встроенную тему удалить нельзя.');
+                ? $this->flash(at('Тема удалена.'))
+                : $this->flash(at('Встроенную тему удалить нельзя.'));
 
             $this->auth->log('theme_delete', (string) $theme['theme_key']);
         }
@@ -1686,15 +1686,15 @@ final class Admin
         $revision = $this->pages->lastRevision((int) $page['id'], $locale);
 
         if ($revision === null) {
-            $this->flash('Отменять нечего: правок пока не было.');
+            $this->flash(at('Отменять нечего: правок пока не было.'));
             $this->redirect('page/' . $page['id'] . '/' . $locale);
 
             return;
         }
 
         $this->pages->restoreRevision((int) $revision['id'])
-            ? $this->flash('Отменено: ' . ($revision['comment'] ?: 'последнее изменение') . '.')
-            : $this->flash('Не удалось отменить — снимок повреждён.');
+            ? $this->flash(at('Отменено: %s.', $revision['comment'] ?: at('последнее изменение')))
+            : $this->flash(at('Не удалось отменить — снимок повреждён.'));
 
         $this->auth->log('page_undo', $page['page_key'] . ' ' . $locale, (string) $revision['comment']);
         $this->redirect('page/' . $page['id'] . '/' . $locale);
@@ -1818,7 +1818,7 @@ final class Admin
         }
 
         $this->auth->log('menu_save', $menu . '/' . $locale);
-        $this->flash('Меню сохранено.');
+        $this->flash(at('Меню сохранено.'));
         $this->redirect('menu/' . $locale . '/' . $menu);
     }
 
@@ -1830,7 +1830,7 @@ final class Admin
         if ($this->isPost() && $item !== null && $item['menu_key'] === $menu && $item['locale'] === $locale) {
             $nav->delete($id);
             $this->auth->log('menu_delete', $menu . '/' . $locale);
-            $this->flash('Пункт удалён.');
+            $this->flash(at('Пункт удалён.'));
         }
 
         $this->redirect('menu/' . $locale . '/' . $menu);
@@ -1857,7 +1857,7 @@ final class Admin
     {
         if ($this->isPost()) {
             // Кэш уже сброшен общим обработчиком POST, здесь только сообщение
-            $this->flash('Кэш страниц сброшен.');
+            $this->flash(at('Кэш страниц сброшен.'));
         }
 
         $this->redirect('system');
@@ -2011,7 +2011,7 @@ final class Admin
         }
 
         if ($uploaded > 0) {
-            $this->flash('Загружено файлов: ' . $uploaded . '.');
+            $this->flash(at('Загружено файлов: %d.', $uploaded));
         }
 
         foreach (array_slice($errors, 0, 5) as $message) {
@@ -2029,7 +2029,7 @@ final class Admin
                 (string) ($_POST['alt_ru'] ?? ''),
                 (string) ($_POST['alt_kk'] ?? '')
             );
-            $this->flash('Описание сохранено.');
+            $this->flash(at('Описание сохранено.'));
         }
 
         $this->redirect('media');
@@ -2054,8 +2054,8 @@ final class Admin
         $this->auth->log('media_delete', (string) $item['path']);
 
         $this->flash($used > 0
-            ? 'Файл удалён, но он использовался в блоках (' . $used . ') — проверьте страницы.'
-            : 'Файл удалён.');
+            ? at('Файл удалён, но он использовался в блоках (%d) — проверьте страницы.', $used)
+            : at('Файл удалён.'));
 
         $this->redirect('media');
     }
@@ -2115,8 +2115,8 @@ final class Admin
 
         $this->auth->log('copy_blocks', $page['page_key'] . ' ' . $base . '→' . $locale);
         $this->flash($copied > 0
-            ? 'Скопировано блоков: ' . $copied . '. Теперь замените текст на перевод.'
-            : 'В основной версии нет блоков для копирования.');
+            ? at('Скопировано блоков: %d. Теперь замените текст на перевод.', $copied)
+            : at('В основной версии нет блоков для копирования.'));
 
         $this->redirect('page/' . $page['id'] . '/' . $locale);
     }
@@ -2150,7 +2150,7 @@ final class Admin
         }
 
         if ($this->pages->slugTaken($slug, $locale, (int) $page['id'])) {
-            $this->flash('Адрес «/' . $slug . '» уже занят другой страницей — настройки не сохранены.');
+            $this->flash(at('Адрес «/%s» уже занят другой страницей — настройки не сохранены.', $slug));
             $this->redirect('page/' . $page['id'] . '/' . $locale);
 
             return;
@@ -2168,7 +2168,7 @@ final class Admin
             'bar'         => $bar !== [] ? $bar : null,
         ]);
 
-        $this->flash('Настройки страницы сохранены.');
+        $this->flash(at('Настройки страницы сохранены.'));
         $this->redirect('page/' . $page['id'] . '/' . $locale);
     }
 
@@ -2191,7 +2191,7 @@ final class Admin
             if ($errors === []) {
                 $this->keepUndo($page, $locale, 'правка блока «' . Blocks::title($block['type']) . '»');
                 $this->pages->updateBlock((int) $block['id'], $clean);
-                $this->flash('Блок «' . Blocks::title($block['type']) . '» сохранён.');
+                $this->flash(at('Блок «%s» сохранён.', at(Blocks::title($block['type']))));
                 $this->redirect('page/' . $page['id'] . '/' . $locale . '#block-' . $block['id']);
 
                 return;
@@ -2225,7 +2225,7 @@ final class Admin
         $type = (string) ($_POST['type'] ?? '');
 
         if (!Blocks::exists($type)) {
-            $this->flash('Неизвестный тип блока.');
+            $this->flash(at('Неизвестный тип блока.'));
             $this->redirect('page/' . $page['id'] . '/' . $locale);
 
             return;
@@ -2240,7 +2240,7 @@ final class Admin
     {
         $this->keepUndo($page, $locale, 'удаление блока «' . Blocks::title($block['type']) . '»');
         $this->pages->deleteBlock((int) $block['id']);
-        $this->flash('Блок «' . Blocks::title($block['type']) . '» удалён.');
+        $this->flash(at('Блок «%s» удалён.', at(Blocks::title($block['type']))));
         $this->redirect('page/' . $page['id'] . '/' . $locale);
     }
 
@@ -2260,7 +2260,7 @@ final class Admin
             (int) $block['sort'] + 5
         );
 
-        $this->flash('Блок скопирован.');
+        $this->flash(at('Блок скопирован.'));
         $this->redirect('page/' . $page['id'] . '/' . $locale . '#block-' . $id);
     }
 
@@ -2304,7 +2304,7 @@ final class Admin
         $this->pages->publish((int) $page['id'], $locale, (int) ($this->auth->user()['id'] ?? 0) ?: null);
         $this->auth->log('publish', $page['page_key'] . ' / ' . $locale);
 
-        $this->flash('Страница опубликована.');
+        $this->flash(at('Страница опубликована.'));
         $this->redirect('page/' . $page['id'] . '/' . $locale);
     }
 
@@ -2319,7 +2319,7 @@ final class Admin
         $this->pages->unpublish((int) $page['id'], $locale);
         $this->auth->log('unpublish', $page['page_key'] . ' / ' . $locale);
 
-        $this->flash('Страница снята с публикации.');
+        $this->flash(at('Страница снята с публикации.'));
         $this->redirect('page/' . $page['id'] . '/' . $locale);
     }
 
@@ -2396,7 +2396,7 @@ final class Admin
             'admin'    => $this,
             'auth'     => $this->auth,
             'content'  => $content,
-            'title'    => $title,
+            'title'    => at($title),
             'messages' => $messages,
         ]);
     }

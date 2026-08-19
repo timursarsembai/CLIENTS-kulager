@@ -11,7 +11,7 @@ $sections = PageRepository::sections();
   <div class="card">
     <h2 class="card__title"><?= ate('Страниц пока нет') ?></h2>
     <p class="card__lead"><?= ate('Перенесите текущий контент из файлов — это делается одной кнопкой.') ?></p>
-    <a href="<?= e($admin->url('system')) ?>" class="btn">Перейти к переносу</a>
+    <a href="<?= e($admin->url('system')) ?>" class="btn"><?= ate('Перейти к переносу') ?></a>
   </div>
 <?php else: ?>
 
@@ -34,7 +34,7 @@ $sections = PageRepository::sections();
 
   <?php foreach ($grouped as $section => $items): ?>
     <div class="card">
-      <h2 class="card__title"><?= e($sections[$section] ?? $section) ?></h2>
+      <h2 class="card__title"><?= ate($sections[$section] ?? $section) ?></h2>
 
       <table class="table table--pages">
         <thead>
@@ -63,9 +63,9 @@ $sections = PageRepository::sections();
                     <span class="muted"><?= ate('не заполнена') ?></span>
                   <?php else: ?>
                     <span class="pill pill--<?= $row['is_published'] ? 'ok' : 'draft' ?>">
-                      <?= $row['is_published'] ? 'опубликована' : 'черновик' ?>
+                      <?= $row['is_published'] ? ate('опубликована') : ate('черновик') ?>
                     </span>
-                    <span class="muted nowrap"><?= e((string) $row['blocks_count']) ?> блоков</span>
+                    <span class="muted nowrap"><?= ate('%d блоков', (int) $row['blocks_count']) ?></span>
                   <?php endif; ?>
                 </a>
               </td>

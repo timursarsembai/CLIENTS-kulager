@@ -16,9 +16,8 @@ declare(strict_types=1);
 
 <?php if (!$imported): ?>
   <div class="notice notice--warn">
-    Меню ещё не перенесено в базу — сайт показывает его из файлов
-    <code>content/navigation.{язык}.php</code>. Нажмите «Перенести контент»
-    в разделе «Состояние»: меню перенесётся вместе со страницами.
+    <?= at('Меню ещё не перенесено в базу — сайт показывает его из файлов %s. Нажмите «Перенести контент» в разделе «Состояние»: меню перенесётся вместе со страницами.',
+            '<code>content/navigation.{язык}.php</code>') ?>
   </div>
 <?php endif; ?>
 
@@ -41,10 +40,10 @@ declare(strict_types=1);
     <tbody>
       <?php foreach ($menus as $key => $title): ?>
         <tr>
-          <td><?= e($title) ?></td>
+          <td><?= ate($title) ?></td>
           <td><?= e((string) ($counts[$key] ?? 0)) ?></td>
           <td class="table__actions">
-            <a href="<?= e($admin->url('menu/' . $locale . '/' . $key)) ?>" class="btn btn--small">Править</a>
+            <a href="<?= e($admin->url('menu/' . $locale . '/' . $key)) ?>" class="btn btn--small"><?= ate('Править') ?></a>
           </td>
         </tr>
       <?php endforeach; ?>

@@ -10,18 +10,18 @@ declare(strict_types=1);
  */
 
 $labels = [
-    'setup'           => 'первый запуск',
-    'login'           => 'вход',
-    'logout'          => 'выход',
-    'import'          => 'перенос контента из файлов',
-    'publish'         => 'публикация',
-    'unpublish'       => 'снятие с публикации',
-    'copy_blocks'     => 'копирование блоков между языками',
-    'media_upload'    => 'загрузка файлов',
-    'media_delete'    => 'удаление файла',
-    'settings'        => 'изменение настроек',
-    'password_change' => 'смена пароля',
-    'backup'          => 'выгрузка резервной копии',
+    'setup'           => at('первый запуск'),
+    'login'           => at('вход'),
+    'logout'          => at('выход'),
+    'import'          => at('перенос контента из файлов'),
+    'publish'         => at('публикация'),
+    'unpublish'       => at('снятие с публикации'),
+    'copy_blocks'     => at('копирование блоков между языками'),
+    'media_upload'    => at('загрузка файлов'),
+    'media_delete'    => at('удаление файла'),
+    'settings'        => at('изменение настроек'),
+    'password_change' => at('смена пароля'),
+    'backup'          => at('выгрузка резервной копии'),
 ];
 
 $pages = (int) ceil($total / $perPage);
@@ -51,13 +51,13 @@ $pages = (int) ceil($total / $perPage);
     <?php if ($pages > 1): ?>
       <div class="pager">
         <?php if ($page > 1): ?>
-          <a href="<?= e($admin->url('log') . '?p=' . ($page - 1)) ?>" class="btn btn--small">Назад</a>
+          <a href="<?= e($admin->url('log') . '?p=' . ($page - 1)) ?>" class="btn btn--small"><?= ate('Назад') ?></a>
         <?php endif; ?>
 
-        <span class="muted">Страница <?= e((string) $page) ?> из <?= e((string) $pages) ?></span>
+        <span class="muted"><?= ate('Страница %d из %d', $page, $pages) ?></span>
 
         <?php if ($page < $pages): ?>
-          <a href="<?= e($admin->url('log') . '?p=' . ($page + 1)) ?>" class="btn btn--small">Дальше</a>
+          <a href="<?= e($admin->url('log') . '?p=' . ($page + 1)) ?>" class="btn btn--small"><?= ate('Дальше') ?></a>
         <?php endif; ?>
       </div>
     <?php endif; ?>

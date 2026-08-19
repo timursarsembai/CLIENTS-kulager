@@ -7,11 +7,51 @@
 
   var topbar = document.querySelector('[data-topbar]');
   var topbarToggle = document.querySelector('[data-topbar-toggle]');
+  var topbarScrim = document.querySelector('[data-topbar-scrim]');
 
   if (topbar && topbarToggle) {
-    topbarToggle.addEventListener('click', function () {
-      var open = topbar.classList.toggle('is-open');
+    /* Панель выезжает поверх страницы, поэтому её открытость помечаем и на
+       body: под ней страница не прокручивается, а затемнение проявляется. */
+    var setNav = function (open) {
+      topbar.classList.toggle('is-open', open);
+      document.body.classList.toggle('is-nav-open', open);
       topbarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+
+    topbarToggle.addEventListener('click', function () {
+      setNav(!topbar.classList.contains('is-open'));
+    });
+
+    if (topbarScrim) {
+      topbarScrim.addEventListener('click', function () { setNav(false); });
+    }
+
+    var topbarClose = topbar.querySelector('[data-topbar-close]');
+
+    if (topbarClose) {
+      topbarClose.addEventListener('click', function () {
+        setNav(false);
+        topbarToggle.focus();
+      });
+    }
+
+    // Переход по разделу закрывает панель сам: страница успевает смениться
+    topbar.querySelectorAll('.topbar__nav a').forEach(function (link) {
+      link.addEventListener('click', function () { setNav(false); });
+    });
+
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && topbar.classList.contains('is-open')) {
+        setNav(false);
+        topbarToggle.focus();
+      }
+    });
+
+    // Экран растянули до настольной ширины — панель больше не нужна
+    window.addEventListener('resize', function () {
+      if (window.innerWidth > 760 && topbar.classList.contains('is-open')) {
+        setNav(false);
+      }
     });
   }
 

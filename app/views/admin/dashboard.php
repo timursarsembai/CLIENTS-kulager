@@ -4,11 +4,11 @@ declare(strict_types=1);
 /** @var Admin $admin @var array $stats @var array $recent */
 
 $labels = [
-    'setup'   => 'первый запуск',
-    'login'   => 'вход',
-    'logout'  => 'выход',
-    'import'  => 'импорт контента',
-    'publish' => 'публикация',
+    'setup'   => at('первый запуск'),
+    'login'   => at('вход'),
+    'logout'  => at('выход'),
+    'import'  => at('импорт контента'),
+    'publish' => at('публикация'),
 ];
 ?>
 <h1 class="page-title"><?= ate('Панель') ?></h1>
@@ -24,10 +24,10 @@ $labels = [
   <div class="card">
     <h2 class="card__title"><?= ate('Контент ещё не перенесён') ?></h2>
     <p class="card__lead">
-      Сайт сейчас работает на файлах <code>app/content</code>. Перенесите их в базу —
-      после этого страницы можно будет править через админку.
+      <?= at('Сайт сейчас работает на файлах %s. Перенесите их в базу — после этого страницы можно будет править через админку.',
+              '<code>app/content</code>') ?>
     </p>
-    <a href="<?= e($admin->url('system')) ?>" class="btn">Перейти к переносу</a>
+    <a href="<?= e($admin->url('system')) ?>" class="btn"><?= ate('Перейти к переносу') ?></a>
   </div>
 <?php endif; ?>
 

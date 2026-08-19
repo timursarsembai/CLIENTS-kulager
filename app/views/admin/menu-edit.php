@@ -47,7 +47,7 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
     $name = 'items[' . (int) $item['id'] . ']';
     ?>
     <div class="menu-item" data-list-item data-menu-id="<?= e((string) $item['id']) ?>">
-      <div class="list-item__handle" data-list-handle title="Перетащите, чтобы поменять порядок">⋮⋮</div>
+      <div class="list-item__handle" data-list-handle title="<?= ate('Перетащите, чтобы поменять порядок') ?>">⋮⋮</div>
 
       <div class="menu-item__fields">
         <label class="field">
@@ -89,16 +89,16 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
       </div>
 
       <button type="submit" form="menu-delete-<?= e((string) $item['id']) ?>"
-              class="list-item__remove" title="Удалить">✕</button>
+              class="list-item__remove" title="<?= ate('Удалить') ?>">✕</button>
     </div>
     <?php
 };
 ?>
 <div class="crumbs">
-  <a href="<?= e($admin->url('menu/' . $locale)) ?>">Меню</a> → <?= e($title) ?>
+  <a href="<?= e($admin->url('menu/' . $locale)) ?>"><?= ate('Меню') ?></a> → <?= ate($title) ?>
 </div>
 
-<h1 class="page-title"><?= e($title) ?></h1>
+<h1 class="page-title"><?= ate($title) ?></h1>
 
 <div class="btn-row">
   <?php foreach ($locales as $code => $lang): ?>
@@ -131,11 +131,11 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
               <summary><?= ate('Добавить отрасль в группу') ?></summary>
               <div class="menu-add__body">
                 <input type="text" form="menu-add-<?= e((string) $group['row']['id']) ?>"
-                       name="title" placeholder="Название" required>
+                       name="title" placeholder="<?= ate('Название') ?>" required>
                 <input type="text" form="menu-add-<?= e((string) $group['row']['id']) ?>"
                        name="url" placeholder="otrasli/sklady">
                 <button type="submit" form="menu-add-<?= e((string) $group['row']['id']) ?>"
-                        class="btn btn--small">Добавить</button>
+                        class="btn btn--small"><?= ate('Добавить') ?></button>
               </div>
             </details>
           </div>
@@ -150,16 +150,16 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
 
   <div class="block-form__actions">
     <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
-    <a href="<?= e($admin->url('menu/' . $locale)) ?>" class="btn">К списку меню</a>
+    <a href="<?= e($admin->url('menu/' . $locale)) ?>" class="btn"><?= ate('К списку меню') ?></a>
   </div>
 </form>
 
 <div class="card">
-  <h2 class="card__title"><?= $grouped ? 'Добавить группу' : 'Добавить пункт' ?></h2>
+  <h2 class="card__title"><?= $grouped ? ate('Добавить группу') : ate('Добавить пункт') ?></h2>
 
   <form method="post" action="<?= e($base . '/add') ?>" class="menu-add__body">
     <?= Csrf::field() ?>
-    <input type="text" name="title" placeholder="Название" required>
+    <input type="text" name="title" placeholder="<?= ate('Название') ?>" required>
     <?php if (!$grouped): ?>
       <input type="text" name="url" placeholder="o-kompanii">
     <?php endif; ?>
@@ -170,7 +170,7 @@ $fields = static function (array $item, bool $isGroup) use ($admin, $base): void
 <?php /* Формы удаления и добавления в группу — вне основной формы, иначе вложенность */ ?>
 <?php foreach ($items as $item): ?>
   <form method="post" action="<?= e($base . '/delete') ?>" id="menu-delete-<?= e((string) $item['id']) ?>"
-        data-confirm="Удалить пункт меню?">
+        data-confirm="<?= ate('Удалить пункт меню?') ?>">
     <?= Csrf::field() ?>
     <input type="hidden" name="id" value="<?= e((string) $item['id']) ?>">
   </form>

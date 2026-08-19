@@ -77,17 +77,17 @@ final class MediaLibrary
         $tmp = (string) $file['tmp_name'];
 
         if (!is_uploaded_file($tmp)) {
-            return [null, 'Файл получен не через форму загрузки.'];
+            return [null, at('Файл получен не через форму загрузки.')];
         }
 
         $mime = $this->detectMime($tmp);
 
         if ($mime === null) {
-            return [null, 'Такой тип файла не поддерживается. Нужен JPEG, PNG, WebP или SVG.'];
+            return [null, at('Такой тип файла не поддерживается. Нужен JPEG, PNG, WebP или SVG.')];
         }
 
         if (!$this->ensureDir()) {
-            return [null, 'Каталог assets/uploads недоступен для записи.'];
+            return [null, at('Каталог assets/uploads недоступен для записи.')];
         }
 
         $name = $this->uniqueName((string) $file['name'], self::ALLOWED[$mime]);
@@ -98,7 +98,7 @@ final class MediaLibrary
             $svg = $this->cleanSvg((string) file_get_contents($tmp));
 
             if ($svg === null) {
-                return [null, 'В SVG нашлись скрипты или внешние ссылки — файл не принят.'];
+                return [null, at('В SVG нашлись скрипты или внешние ссылки — файл не принят.')];
             }
 
             file_put_contents($path, $svg);
@@ -107,7 +107,7 @@ final class MediaLibrary
             $size = getimagesize($tmp);
 
             if ($size === false) {
-                return [null, 'Файл не похож на изображение.'];
+                return [null, at('Файл не похож на изображение.')];
             }
 
             [$width, $height] = $size;
@@ -119,11 +119,11 @@ final class MediaLibrary
              */
             if (!$this->hasGd()) {
                 if (!move_uploaded_file($tmp, $path) && !copy($tmp, $path)) {
-                    return [null, 'Не удалось сохранить файл.'];
+                    return [null, at('Не удалось сохранить файл.')];
                 }
             } else {
                 if (!$this->rewrite($tmp, $path, $mime)) {
-                    return [null, 'Не удалось обработать изображение.'];
+                    return [null, at('Не удалось обработать изображение.')];
                 }
 
                 $this->makeVariants($path, $mime, $width);
@@ -183,12 +183,14 @@ final class MediaLibrary
 
         return match ($code) {
             UPLOAD_ERR_OK        => null,
-            UPLOAD_ERR_NO_FILE   => 'Файл не выбран.',
+            UPLOAD_ERR_NO_FILE   => at('Файл не выбран.'),
             UPLOAD_ERR_INI_SIZE,
-            UPLOAD_ERR_FORM_SIZE => 'Файл больше, чем разрешает хостинг ('
-                . ini_get('upload_max_filesize') . '). Уменьшите размер и попробуйте снова.',
-            UPLOAD_ERR_PARTIAL   => 'Файл передан не полностью.',
-            default              => 'Не удалось загрузить файл (код ' . $code . ').',
+            UPLOAD_ERR_FORM_SIZE => at(
+                'Файл больше, чем разрешает хостинг (%s). Уменьшите размер и попробуйте снова.',
+                (string) ini_get('upload_max_filesize')
+            ),
+            UPLOAD_ERR_PARTIAL   => at('Файл передан не полностью.'),
+            default              => at('Не удалось загрузить файл (код %d).', $code),
         };
     }
 
