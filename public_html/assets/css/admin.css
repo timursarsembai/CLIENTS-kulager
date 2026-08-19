@@ -1,21 +1,22 @@
 /* ==========================================================================
-   Админка KULAGER. Отдельные стили от сайта: здесь важна не подача,
-   а разборчивость и предсказуемость.
+   Админка KULAGER.
+
+   Цвета и шрифты берутся у сайта: тема подставляется в <style> внутри <head>
+   (см. views/admin/layout.php), поэтому админка выглядит так же, как результат
+   правки. Собственные имена переменных оставлены — по ним и раньше был весь
+   файл, а теперь они просто ссылаются на переменные темы.
    ========================================================================== */
 
 :root {
-  --ink: #16202b;
-  --ink-2: #4a5b6b;
-  --ink-3: #7b8b99;
-  --line: #dde4ea;
-  --line-2: #c6d2dc;
-  --bg: #f4f6f8;
-  --surface: #ffffff;
-  --accent: #1868a8;
-  --accent-hover: #0f4e82;
-  --ok: #1b7c43;
-  --warn: #9a6a06;
-  --error: #b3261e;
+  --ink: var(--text);
+  --ink-2: var(--text-2);
+  /* Подсказки набраны 12 пикселями — берём оттенок посветлее, иначе
+     на тёмной теме они читаются с трудом */
+  --ink-3: var(--text-3);
+  --line-2: var(--line-3);
+  --ok: #2e9e5b;
+  --warn: #c9922a;
+  --error: #e2574c;
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -24,10 +25,19 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 15px;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Заголовки набираются тем же шрифтом, что и на сайте */
+.page-title,
+.card__title,
+.topbar__brand {
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  letter-spacing: .01em;
 }
 
 a { color: var(--accent); text-decoration: none; }
@@ -36,10 +46,10 @@ a:hover { color: var(--accent-hover); text-decoration: underline; }
 code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: .92em;
-  background: var(--bg);
-  border: 1px solid var(--line);
+  background: var(--hover-bg);
+  border: 1px solid var(--line-2);
   padding: 1px 5px;
-  border-radius: 3px;
+  border-radius: 2px;
 }
 
 /* ------------------------------------------------------------- шапка */
@@ -52,6 +62,9 @@ code {
   background: var(--surface);
   border-bottom: 1px solid var(--line);
   padding: 12px clamp(16px, 3vw, 32px);
+  position: sticky;
+  top: 0;
+  z-index: 20;
 }
 
 .topbar__brand {
@@ -63,7 +76,7 @@ code {
   gap: 8px;
 }
 .topbar__brand:hover { text-decoration: none; }
-.topbar__brand span { font-weight: 400; font-size: 13px; color: var(--ink-3); letter-spacing: 0; }
+.topbar__brand span { font-family: "IBM Plex Sans", sans-serif; font-weight: 400; font-size: 13px; color: var(--ink-3); letter-spacing: 0; }
 
 .topbar__nav { display: flex; gap: 18px; flex-wrap: wrap; }
 .topbar__nav a { color: var(--ink-2); }
@@ -95,7 +108,7 @@ code {
 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 3px;
   padding: clamp(18px, 2.4vw, 28px);
   margin-bottom: 20px;
 }
@@ -119,13 +132,13 @@ code {
 .tile {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 6px;
+  border-radius: 3px;
   padding: 18px 20px;
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
-.tile__value { font-size: 28px; font-weight: 700; line-height: 1; }
+.tile__value { font-family: Oswald, sans-serif; font-size: 28px; font-weight: 700; line-height: 1; }
 .tile__label { font-size: 13px; color: var(--ink-3); }
 
 /* ------------------------------------------------------------ таблицы */
@@ -149,23 +162,23 @@ code {
   border-radius: 10px;
   white-space: nowrap;
 }
-.pill--ok { background: #e6f4ec; color: var(--ok); }
-.pill--draft { background: #eef1f4; color: var(--ink-3); }
-.pill--warn { background: #fdf3e0; color: var(--warn); }
-.pill--error { background: #fbeceb; color: var(--error); }
+.pill--ok { background: color-mix(in srgb, var(--ok) 18%, transparent); color: var(--ok); }
+.pill--draft { background: var(--hover-bg); color: var(--ink-3); }
+.pill--warn { background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); }
+.pill--error { background: color-mix(in srgb, var(--error) 18%, transparent); color: var(--error); }
 
 /* ---------------------------------------------------------- сообщения */
 
 .notice {
-  border-radius: 5px;
+  border-radius: 3px;
   padding: 12px 16px;
   margin-bottom: 18px;
   font-size: 14px;
   border: 1px solid transparent;
 }
-.notice--ok { background: #e6f4ec; border-color: #bfe0cd; color: #125c31; }
-.notice--warn { background: #fdf3e0; border-color: #eed9ae; color: #7a5405; }
-.notice--error { background: #fbeceb; border-color: #f0c8c5; color: #8f1e18; }
+.notice--ok { background: color-mix(in srgb, var(--ok) 12%, transparent); border-color: var(--ok); color: var(--ink); }
+.notice--warn { background: color-mix(in srgb, var(--warn) 12%, transparent); border-color: var(--warn); color: var(--ink); }
+.notice--error { background: color-mix(in srgb, var(--error) 12%, transparent); border-color: var(--error); color: var(--ink); }
 
 /* -------------------------------------------------------------- формы */
 
@@ -183,15 +196,15 @@ code {
   width: 100%;
   font: inherit;
   color: var(--ink);
-  background: var(--surface);
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
-  padding: 9px 11px;
+  background: var(--bg);
+  border: 1px solid var(--line-3);
+  border-radius: 3px;
+  padding: 10px 12px;
 }
 .field input:focus,
 .field textarea:focus,
 .field select:focus {
-  outline: 2px solid rgba(24,104,168,.35);
+  outline: 2px solid var(--accent);
   outline-offset: 1px;
   border-color: var(--accent);
 }
@@ -211,16 +224,17 @@ code {
   font-weight: 600;
   padding: 10px 18px;
   min-height: 40px;
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
-  background: var(--surface);
+  border: 1px solid var(--line-4);
+  border-radius: 3px;
+  background: transparent;
   color: var(--ink);
   cursor: pointer;
+  transition: background .16s ease, border-color .16s ease, color .16s ease;
 }
-.btn:hover { background: var(--bg); text-decoration: none; color: var(--ink); }
+.btn:hover { background: var(--hover-bg); text-decoration: none; color: var(--ink); border-color: var(--line-5); }
 
-.btn--primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-.btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+.btn--primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn--primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: var(--accent-ink); }
 
 /* Кнопка, которая выглядит как ссылка — для выхода в шапке */
 .link {
@@ -326,7 +340,11 @@ code {
   cursor: pointer;
 }
 .icon-btn:hover { background: var(--bg); border-color: var(--line); color: var(--ink); }
-.icon-btn--danger:hover { color: var(--error); border-color: #f0c8c5; background: #fbeceb; }
+.icon-btn--danger:hover {
+  color: var(--error);
+  border-color: var(--error);
+  background: color-mix(in srgb, var(--error) 12%, transparent);
+}
 
 /* --------------------------------------------------------- библиотека блоков */
 
@@ -368,8 +386,8 @@ code {
 }
 .block-form__spacer { flex: 1; }
 
-.btn--danger { border-color: #f0c8c5; color: var(--error); }
-.btn--danger:hover { background: #fbeceb; color: var(--error); }
+.btn--danger { border-color: color-mix(in srgb, var(--error) 45%, transparent); color: var(--error); }
+.btn--danger:hover { background: color-mix(in srgb, var(--error) 12%, transparent); color: var(--error); }
 .btn--small { font-size: 13px; padding: 6px 12px; min-height: 32px; }
 
 .field__label i { font-style: normal; font-weight: 400; color: var(--ink-3); font-size: 12px; }
@@ -510,13 +528,25 @@ code {
 .theme-var .field__hint { min-height: 2.4em; }
 
 .theme-preview-card { position: sticky; top: 16px; }
-.theme-preview { border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--bg); color: var(--text); }
+/*
+ * Предпросмотр показывает редактируемую тему, а не ту, в которой открыта
+ * админка: переменные ему подставляет скрипт прямо на элемент. Здесь важно
+ * задать шрифты сайта — иначе он выглядел бы не как страница.
+ */
+.theme-preview {
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "IBM Plex Sans", sans-serif;
+}
 .theme-preview__header { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; background: var(--surface); border-bottom: 1px solid var(--line); }
-.theme-preview__logo { font-weight: 700; letter-spacing: .08em; color: var(--logo); }
+.theme-preview__logo { font-family: Oswald, sans-serif; font-weight: 700; letter-spacing: .08em; color: var(--logo); }
 .theme-preview__nav { font-size: 12px; color: var(--nav); }
 .theme-preview__body { padding: 16px 14px; }
 .theme-preview__kicker { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--accent); }
-.theme-preview__title { font-size: 20px; margin: 6px 0 8px; color: var(--text-strong); }
+.theme-preview__title { font-family: Oswald, sans-serif; font-weight: 600; font-size: 20px; margin: 6px 0 8px; color: var(--text-strong); }
 .theme-preview__text { font-size: 13px; margin: 0 0 12px; color: var(--text); }
 .theme-preview__text a { color: var(--accent); }
 .theme-preview__row { display: flex; gap: 8px; margin-bottom: 14px; }
@@ -672,7 +702,8 @@ body.is-locked { overflow: hidden; }
 
 .media__thumb {
   height: 140px;
-  background: var(--bg) repeating-conic-gradient(#eef1f4 0% 25%, transparent 0% 50%) 50% / 16px 16px;
+  /* Шахматка под прозрачными картинками — на цветах темы, а не на светлых */
+  background: var(--bg) repeating-conic-gradient(var(--hover-bg) 0% 25%, transparent 0% 50%) 50% / 16px 16px;
   display: flex;
   align-items: center;
   justify-content: center;

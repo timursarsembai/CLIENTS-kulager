@@ -11,6 +11,10 @@ declare(strict_types=1);
  */
 
 $user = $auth->check() ? $auth->user() : null;
+
+/* Админка берёт цвета и шрифты у сайта — чтобы правка выглядела как результат */
+$themes = $site->themes();
+$themeVars = $themes[$site->defaultTheme()]['vars'] ?? [];
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -19,6 +23,18 @@ $user = $auth->check() ? $auth->user() : null;
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow">
 <title><?= e($title !== '' ? $title . ' — админка KULAGER' : 'Админка KULAGER') ?></title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+
+<style>
+:root {
+<?php foreach ($themeVars as $name => $value): ?>
+  <?= $name ?>: <?= $value ?>;
+<?php endforeach; ?>
+}
+</style>
 <link rel="stylesheet" href="<?= e($site->asset('css/admin.css')) ?>">
 </head>
 <body>
