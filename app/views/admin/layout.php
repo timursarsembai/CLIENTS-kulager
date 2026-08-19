@@ -12,9 +12,13 @@ declare(strict_types=1);
 
 $user = $auth->check() ? $auth->user() : null;
 
-/* Админка берёт цвета и шрифты у сайта — чтобы правка выглядела как результат */
+/*
+ * Админка оформлена в светлой теме «Фарфор»: рабочий инструмент читается
+ * лучше на светлом, а фирменный вид даёт не цвет, а типографика и сетка.
+ * Если темы «Фарфор» нет, берём тему сайта.
+ */
 $themes = $site->themes();
-$themeVars = $themes[$site->defaultTheme()]['vars'] ?? [];
+$themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars'] ?? []);
 ?>
 <!DOCTYPE html>
 <html lang="ru">
@@ -34,6 +38,14 @@ $themeVars = $themes[$site->defaultTheme()]['vars'] ?? [];
   <?= $name ?>: <?= $value ?>;
 <?php endforeach; ?>
 }
+<?php $logo = $site->contact('logo'); ?>
+<?php if ($logo !== ''): ?>
+<?php /* Логотип в шапке — тот же, что выбран в настройках сайта */ ?>
+.topbar__brand::before {
+  -webkit-mask-image: url(<?= e($site->asset($logo)) ?>);
+  mask-image: url(<?= e($site->asset($logo)) ?>);
+}
+<?php endif; ?>
 </style>
 <link rel="stylesheet" href="<?= e($site->asset('css/admin.css')) ?>">
 </head>
