@@ -1,0 +1,181 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Страница «Состояние». На shared-хостинге нет консоли, поэтому
+ * всё, что нужно для диагностики, показываем здесь.
+ *
+ * @var Admin $admin
+ * @var string $php
+ * @var array $extensions
+ * @var array $limits
+ * @var array $writable
+ * @var array $migrations
+ * @var int $contentFiles
+ * @var int $cachedPages
+ * @var array $security
+ * @var bool $canZip
+ */
+?>
+<h1 class="page-title">Состояние</h1>
+
+<div class="card">
+  <h2 class="card__title">Резервная копия</h2>
+  <p class="card__lead">
+    В копию попадают все тексты страниц, настройки и загруженные файлы.
+    <?php if (!$canZip): ?>
+      Расширение ZipArchive недоступно, поэтому выгрузим только дамп базы —
+      файлы из <code>assets/uploads</code> скопируйте отдельно.
+    <?php else: ?>
+      Скачается один архив: дамп базы и каталог загрузок.
+    <?php endif; ?>
+    Шаблоны и стили в копию не входят — они лежат в исходниках проекта.
+  </p>
+
+  <form method="post" action="<?= e($admin->url('backup')) ?>">
+    <?= Csrf::field() ?>
+    <button type="submit" class="btn btn--primary">Скачать копию</button>
+    <a href="<?= e($admin->url('log')) ?>" class="btn">Журнал действий</a>
+  </form>
+</div>
+
+<div class="card">
+  <h2 class="card__title">Восстановление контента из файлов</h2>
+  <p class="card__lead">
+    Страницы жили в файлах <code>app/content</code> до переезда в базу — сейчас
+    их там <?= e((string) $contentFiles) ?>. Переезд уже состоялся: сайт берёт
+    контент из базы, а файлы остались слепком исходной вёрстки.
+  </p>
+
+  <div class="notice notice--warn">
+    Эта кнопка нужна только в одном случае — <strong>вернуть страницы к исходному
+    виду</strong>, если что-то безнадёжно испорчено. Она <strong>сотрёт все правки,
+    сделанные через админку</strong>: и тексты блоков, и меню. В обычной работе
+    она не нужна.
+  </div>
+
+  <form method="post" action="<?= e($admin->url('import')) ?>"
+        data-confirm="Все правки, сделанные через админку, будут заменены содержимым файлов. Это не отменяется. Продолжить?">
+    <?= Csrf::field() ?>
+    <button type="submit" class="btn">Вернуть контент из файлов</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2 class="card__title">Безопасность</h2>
+
+  <table class="table">
+    <tbody>
+      <tr>
+        <th>Соединение</th>
+        <td>
+          <?php if ($security['https']): ?>
+            <span class="pill pill--ok">HTTPS</span>
+          <?php else: ?>
+            <span class="pill pill--warn">без HTTPS</span> пароли идут открытым текстом
+          <?php endif; ?>
+        </td>
+      </tr>
+      <tr>
+        <th>Отладка</th>
+        <td>
+          <?php if ($security['debug']): ?>
+            <span class="pill pill--warn">включена</span> посетителям видны тексты ошибок
+          <?php else: ?>
+            <span class="pill pill--ok">выключена</span>
+          <?php endif; ?>
+        </td>
+      </tr>
+      <tr>
+        <th>Вход по коду</th>
+        <td>
+          <?php if ($security['two_factor'] > 0): ?>
+            <span class="pill pill--ok">у <?= e((string) $security['two_factor']) ?> из <?= e((string) count($security['users'])) ?></span>
+          <?php else: ?>
+            <span class="pill pill--warn">ни у кого</span>
+            включается в разделе «Профиль»
+          <?php endif; ?>
+        </td>
+      </tr>
+      <tr>
+        <th>Неудачные входы за сутки</th>
+        <td>
+          <?= e((string) $security['failed']) ?>
+          <?php if ($security['failed'] > 20): ?>
+            <span class="pill pill--warn">похоже на подбор</span>
+          <?php endif; ?>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p class="muted">
+    После десяти неудачных попыток вход блокируется на 15 минут — и по адресу,
+    с которого подбирают, и по самой почте. Сессия закрывается через два часа
+    без действий и через двенадцать часов в любом случае.
+  </p>
+</div>
+
+<div class="card">
+  <h2 class="card__title">Кэш страниц</h2>
+  <p class="card__lead">
+    Готовые страницы сохраняются в <code>app/cache</code> и отдаются без обращения к базе.
+    Сейчас в кэше: <?= e((string) $cachedPages) ?>. Любая правка в админке сбрасывает его сама —
+    кнопка нужна, если данные меняли мимо админки.
+  </p>
+
+  <form method="post" action="<?= e($admin->url('cache')) ?>">
+    <?= Csrf::field() ?>
+    <button type="submit" class="btn">Сбросить кэш</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2 class="card__title">Окружение</h2>
+
+  <table class="table">
+    <tbody>
+      <tr><th>PHP</th><td><?= e($php) ?></td></tr>
+
+      <?php foreach ($extensions as $name => $loaded): ?>
+        <tr>
+          <th><?= e($name) ?></th>
+          <td>
+            <span class="pill pill--<?= $loaded ? 'ok' : 'error' ?>"><?= $loaded ? 'есть' : 'отсутствует' ?></span>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+
+      <?php foreach ($limits as $name => $value): ?>
+        <tr><th><?= e($name) ?></th><td><?= e((string) $value) ?></td></tr>
+      <?php endforeach; ?>
+
+      <?php foreach ($writable as $name => $state): ?>
+        <tr>
+          <th><?= e($name) ?></th>
+          <td>
+            <?php if ($state === null): ?>
+              <span class="muted">каталога нет</span>
+            <?php else: ?>
+              <span class="pill pill--<?= $state ? 'ok' : 'error' ?>"><?= $state ? 'запись доступна' : 'нет прав на запись' ?></span>
+            <?php endif; ?>
+          </td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody>
+  </table>
+</div>
+
+<div class="card">
+  <h2 class="card__title">Миграции</h2>
+
+  <?php if ($migrations['pending'] !== []): ?>
+    <div class="notice notice--warn">Не применено: <?= e(implode(', ', $migrations['pending'])) ?></div>
+    <form method="post" action="<?= e($admin->url('migrate')) ?>">
+      <?= Csrf::field() ?>
+      <button type="submit" class="btn btn--primary">Применить</button>
+    </form>
+  <?php else: ?>
+    <p class="muted">Все применены: <?= e(implode(', ', $migrations['applied'])) ?></p>
+  <?php endif; ?>
+</div>

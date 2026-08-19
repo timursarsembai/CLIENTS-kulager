@@ -1,0 +1,55 @@
+# Локальное окружение повторяет типовой shared-хостинг:
+# Apache + mod_php + .htaccess + MySQL. Что работает здесь — работает и на хостинге.
+services:
+  web:
+    build: ./docker/apache
+    container_name: kulager-web
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8090:80"
+    volumes:
+      # public_html заливается в корень сайта, app — уровнем выше
+      - ./public_html:/var/www/html
+      - ./app:/var/www/app
+    environment:
+      # Сайт открыт наружу, поэтому тексты ошибок посетителю не показываем.
+      # Для отладки: KULAGER_DEBUG=1 docker compose up -d
+      KULAGER_DEBUG: "${KULAGER_DEBUG:-0}"
+      KULAGER_DB_DSN: "mysql:host=db;dbname=kulager;charset=utf8mb4"
+      KULAGER_DB_USER: "${KULAGER_DB_USER:-kulager}"
+      KULAGER_DB_PASS: "${KULAGER_DB_PASS:?задайте пароль в .env — см. .env.example}"
+    networks:
+      # nginx-proxy-manager обращается к контейнеру по имени kulager-web:80
+      - proxy-network
+      - internal
+    restart: unless-stopped
+
+  db:
+    # MariaDB — то же, что стоит на большинстве shared-хостингов
+    image: mariadb:10.11
+    container_name: kulager-db
+    environment:
+      MARIADB_DATABASE: kulager
+      MARIADB_USER: "${KULAGER_DB_USER:-kulager}"
+      MARIADB_PASSWORD: "${KULAGER_DB_PASS:?задайте пароль в .env — см. .env.example}"
+      MARIADB_ROOT_PASSWORD: "${KULAGER_DB_ROOT_PASS:?задайте пароль в .env — см. .env.example}"
+    volumes:
+      - db-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    networks:
+      - internal
+    restart: unless-stopped
+
+volumes:
+  db-data:
+
+networks:
+  proxy-network:
+    external: true
+  internal:

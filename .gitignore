@@ -1,0 +1,18 @@
+# Кэш готовых страниц — собирается сам
+app/cache/
+
+# Журнал ошибок
+app/logs/*.log
+
+# Загруженные через админку файлы: это контент площадки, а не код
+public_html/assets/uploads/*
+!public_html/assets/uploads/.gitkeep
+
+# Локальные пароли к базе
+.env
+
+# Мусор редакторов и системы
+.DS_Store
+Thumbs.db
+*.swp
+*~

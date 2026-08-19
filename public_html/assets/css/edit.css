@@ -1,0 +1,67 @@
+/* ==========================================================================
+   Правка текста прямо на странице. Подключается только вошедшему редактору,
+   обычный посетитель этих стилей не получает.
+   ========================================================================== */
+
+.is-editable {
+  outline: 1px dashed rgba(125, 125, 125, .45);
+  outline-offset: 3px;
+  border-radius: 2px;
+  cursor: text;
+  transition: outline-color .15s ease, background-color .15s ease;
+}
+
+.is-editable:hover { outline-color: var(--accent); }
+
+.is-editable:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.is-editable.is-saving { outline-style: dotted; opacity: .7; }
+
+/* ------------------------------------------------ панель администратора */
+
+.adminbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  padding: 0 clamp(8px, 2vw, 20px);
+  background: #1d2327;
+  color: #f0f0f1;
+  font-size: 13px;
+  line-height: 1;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .2);
+}
+
+.adminbar__brand {
+  font-weight: 700;
+  letter-spacing: .06em;
+  color: #f0f0f1;
+  padding: 11px 12px;
+}
+.adminbar__brand:hover { color: #72aee6; }
+
+.adminbar__item { color: #c3c4c7; padding: 11px 12px; white-space: nowrap; }
+.adminbar__item:hover { color: #72aee6; background: rgba(255, 255, 255, .06); text-decoration: none; }
+.adminbar__item--accent { color: #f0f0f1; font-weight: 600; }
+
+.adminbar__state { color: #a7aaad; padding: 11px 8px; }
+.adminbar__status { color: #a7aaad; padding: 11px 8px; margin-left: auto; }
+.adminbar__status.is-error { color: #ff8a80; }
+.adminbar__gap { flex: 1; }
+
+/* Панель перекрывает шапку сайта — сдвигаем страницу вниз на её высоту */
+body { padding-top: 38px; }
+
+@media (max-width: 700px) {
+  .adminbar__state { display: none; }
+  body { padding-top: 36px; }
+}

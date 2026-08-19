@@ -1,0 +1,26 @@
+Options -Indexes -MultiViews
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /admin/
+
+    # Статика админки отдаётся как есть, остальное — во фронт-контроллер
+    RewriteCond %{REQUEST_FILENAME} -f
+    RewriteRule ^ - [L]
+
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    # Админку не индексируем и не показываем во фреймах
+    Header always set X-Robots-Tag "noindex, nofollow"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+    Header always unset X-Powered-By
+
+    # Политику админки задаёт PHP: там свой одноразовый ключ для inline-скриптов.
+    # Унаследованную от сайта снимаем, иначе браузер применит обе разом.
+    Header always unset Content-Security-Policy
+</IfModule>

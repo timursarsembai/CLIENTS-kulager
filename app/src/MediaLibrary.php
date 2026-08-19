@@ -1,0 +1,393 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * Медиатека: загрузка изображений через админку.
+ *
+ * Что здесь важно с точки зрения безопасности:
+ * - тип файла определяется по содержимому (finfo и getimagesize), а не по
+ *   расширению — присланное имя вообще не участвует в решении;
+ * - имя файла собирается заново из безопасных символов;
+ * - каталог загрузок закрыт от выполнения кода своим .htaccess.
+ *
+ * Изображение пересохраняется через GD: это заодно срезает всё лишнее,
+ * что могло быть спрятано внутри файла.
+ */
+final class MediaLibrary
+{
+    /** Форматы, которые принимаем: тип из finfo => расширение */
+    private const ALLOWED = [
+        'image/jpeg'    => 'jpg',
+        'image/png'     => 'png',
+        'image/webp'    => 'webp',
+        'image/svg+xml' => 'svg',
+    ];
+
+    /** Ширины, под которые делаем копии для srcset */
+    private const WIDTHS = [480, 960, 1600];
+
+    private Db $db;
+    private string $dir;
+
+    public function __construct(Db $db, ?string $dir = null)
+    {
+        $this->db = $db;
+
+        // PUBLIC_DIR определяют точки входа; при вызове из командной строки
+        // её нет, поэтому держим запасной путь рядом с каталогом приложения
+        $this->dir = $dir ?? (defined('PUBLIC_DIR') ? PUBLIC_DIR : dirname(APP_DIR) . '/public_html')
+            . '/assets/uploads';
+    }
+
+    public function isWritable(): bool
+    {
+        return is_dir($this->dir) ? is_writable($this->dir) : is_writable(dirname($this->dir));
+    }
+
+    /** Есть ли обработка изображений. Без неё работаем, но без уменьшенных копий. */
+    public function hasGd(): bool
+    {
+        return function_exists('imagecreatetruecolor') && function_exists('imagecopyresampled');
+    }
+
+    /** @return list<array> файлы в порядке от новых к старым */
+    public function all(int $limit = 200): array
+    {
+        return $this->db->all('SELECT * FROM media ORDER BY created_at DESC, id DESC LIMIT ' . $limit);
+    }
+
+    public function find(int $id): ?array
+    {
+        return $this->db->first('SELECT * FROM media WHERE id = :id', ['id' => $id]);
+    }
+
+    /**
+     * Принимает файл из $_FILES.
+     *
+     * @return array{0:?array,1:?string} запись медиатеки либо текст ошибки
+     */
+    public function upload(array $file): array
+    {
+        $error = $this->checkUploadError($file);
+
+        if ($error !== null) {
+            return [null, $error];
+        }
+
+        $tmp = (string) $file['tmp_name'];
+
+        if (!is_uploaded_file($tmp)) {
+            return [null, 'Файл получен не через форму загрузки.'];
+        }
+
+        $mime = $this->detectMime($tmp);
+
+        if ($mime === null) {
+            return [null, 'Такой тип файла не поддерживается. Нужен JPEG, PNG, WebP или SVG.'];
+        }
+
+        if (!$this->ensureDir()) {
+            return [null, 'Каталог assets/uploads недоступен для записи.'];
+        }
+
+        $name = $this->uniqueName((string) $file['name'], self::ALLOWED[$mime]);
+        $path = $this->dir . '/' . $name;
+
+        // SVG не пропускаем через GD — он не растровый; вместо этого чистим разметку
+        if ($mime === 'image/svg+xml') {
+            $svg = $this->cleanSvg((string) file_get_contents($tmp));
+
+            if ($svg === null) {
+                return [null, 'В SVG нашлись скрипты или внешние ссылки — файл не принят.'];
+            }
+
+            file_put_contents($path, $svg);
+            [$width, $height] = $this->svgSize($svg);
+        } else {
+            $size = getimagesize($tmp);
+
+            if ($size === false) {
+                return [null, 'Файл не похож на изображение.'];
+            }
+
+            [$width, $height] = $size;
+
+            /*
+             * Без GD пересобрать картинку нечем — сохраняем как есть.
+             * Хостинг без GD встречается, и загрузка на нём должна работать,
+             * пусть и без уменьшенных копий.
+             */
+            if (!$this->hasGd()) {
+                if (!move_uploaded_file($tmp, $path) && !copy($tmp, $path)) {
+                    return [null, 'Не удалось сохранить файл.'];
+                }
+            } else {
+                if (!$this->rewrite($tmp, $path, $mime)) {
+                    return [null, 'Не удалось обработать изображение.'];
+                }
+
+                $this->makeVariants($path, $mime, $width);
+            }
+        }
+
+        @chmod($path, 0644);
+
+        $id = $this->db->insert('media', [
+            'path'       => 'uploads/' . $name,
+            'mime'       => $mime,
+            'width'      => (int) $width,
+            'height'     => (int) $height,
+            'size'       => (int) filesize($path),
+            'alt_ru'     => '',
+            'alt_kk'     => '',
+            'created_at' => date('Y-m-d H:i:s'),
+        ]);
+
+        return [$this->find($id), null];
+    }
+
+    public function updateAlt(int $id, string $altRu, string $altKk): void
+    {
+        $this->db->update('media', [
+            'alt_ru' => mb_substr($altRu, 0, 255),
+            'alt_kk' => mb_substr($altKk, 0, 255),
+        ], 'id = :id', ['id' => $id]);
+    }
+
+    /** Удаляет файл вместе с производными размерами. */
+    public function delete(int $id): void
+    {
+        $item = $this->find($id);
+
+        if ($item === null) {
+            return;
+        }
+
+        $name = basename((string) $item['path']);
+        $base = pathinfo($name, PATHINFO_FILENAME);
+
+        foreach (glob($this->dir . '/' . $base . '*') ?: [] as $file) {
+            if (is_file($file)) {
+                @unlink($file);
+            }
+        }
+
+        $this->db->delete('media', 'id = :id', ['id' => $id]);
+    }
+
+    /* ------------------------------------------------------------ служебное */
+
+    private function checkUploadError(array $file): ?string
+    {
+        $code = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+
+        return match ($code) {
+            UPLOAD_ERR_OK        => null,
+            UPLOAD_ERR_NO_FILE   => 'Файл не выбран.',
+            UPLOAD_ERR_INI_SIZE,
+            UPLOAD_ERR_FORM_SIZE => 'Файл больше, чем разрешает хостинг ('
+                . ini_get('upload_max_filesize') . '). Уменьшите размер и попробуйте снова.',
+            UPLOAD_ERR_PARTIAL   => 'Файл передан не полностью.',
+            default              => 'Не удалось загрузить файл (код ' . $code . ').',
+        };
+    }
+
+    /** Тип определяем по содержимому: расширению из браузера не доверяем. */
+    private function detectMime(string $tmp): ?string
+    {
+        $finfo = new finfo(FILEINFO_MIME_TYPE);
+        $mime = (string) $finfo->file($tmp);
+
+        // finfo отдаёт SVG как обычный XML или текст — проверяем содержимое
+        if (in_array($mime, ['image/svg', 'text/xml', 'application/xml', 'text/plain'], true)) {
+            $head = (string) file_get_contents($tmp, false, null, 0, 1024);
+            $mime = str_contains($head, '<svg') ? 'image/svg+xml' : $mime;
+        }
+
+        return isset(self::ALLOWED[$mime]) ? $mime : null;
+    }
+
+    private function ensureDir(): bool
+    {
+        if (!is_dir($this->dir) && !@mkdir($this->dir, 0755, true) && !is_dir($this->dir)) {
+            return false;
+        }
+
+        return is_writable($this->dir);
+    }
+
+    /** Имя собираем заново: от исходного берём только читаемую основу. */
+    private function uniqueName(string $original, string $extension): string
+    {
+        $base = pathinfo($original, PATHINFO_FILENAME);
+        $base = $this->transliterate($base);
+        $base = strtolower(preg_replace('~[^a-zA-Z0-9]+~', '-', $base) ?? '');
+        $base = trim($base, '-');
+
+        if ($base === '') {
+            $base = 'image';
+        }
+
+        $base = substr($base, 0, 60);
+        $name = $base . '.' . $extension;
+        $counter = 2;
+
+        /*
+         * Проверяем и диск, и базу: они могут разойтись, если файлы чистили
+         * вручную. Совпадение только по одному источнику приводило к отказу
+         * записи по уникальному индексу.
+         */
+        while (file_exists($this->dir . '/' . $name) || $this->pathTaken('uploads/' . $name)) {
+            $name = $base . '-' . $counter . '.' . $extension;
+            $counter++;
+        }
+
+        return $name;
+    }
+
+    private function pathTaken(string $path): bool
+    {
+        return (int) $this->db->value(
+            'SELECT COUNT(*) FROM media WHERE path = :path',
+            ['path' => $path],
+            0
+        ) > 0;
+    }
+
+    private function transliterate(string $value): string
+    {
+        $map = [
+            'а'=>'a','б'=>'b','в'=>'v','г'=>'g','д'=>'d','е'=>'e','ё'=>'e','ж'=>'zh','з'=>'z',
+            'и'=>'i','й'=>'y','к'=>'k','л'=>'l','м'=>'m','н'=>'n','о'=>'o','п'=>'p','р'=>'r',
+            'с'=>'s','т'=>'t','у'=>'u','ф'=>'f','х'=>'h','ц'=>'c','ч'=>'ch','ш'=>'sh','щ'=>'sch',
+            'ъ'=>'','ы'=>'y','ь'=>'','э'=>'e','ю'=>'yu','я'=>'ya',
+            'ә'=>'a','ғ'=>'g','қ'=>'q','ң'=>'n','ө'=>'o','ұ'=>'u','ү'=>'u','һ'=>'h','і'=>'i',
+        ];
+
+        return strtr(mb_strtolower($value), $map);
+    }
+
+    /** Пересохраняет картинку средствами GD, отбрасывая всё постороннее. */
+    private function rewrite(string $tmp, string $path, string $mime): bool
+    {
+        $image = $this->read($tmp, $mime);
+
+        if ($image === null) {
+            return false;
+        }
+
+        $ok = $this->write($image, $path, $mime);
+        imagedestroy($image);
+
+        return $ok;
+    }
+
+    /** Готовит уменьшенные копии для srcset — только меньше оригинала. */
+    private function makeVariants(string $path, string $mime, int $width): void
+    {
+        if (!$this->hasGd()) {
+            return;
+        }
+
+        $image = $this->read($path, $mime);
+
+        if ($image === null) {
+            return;
+        }
+
+        $height = imagesy($image);
+        $info = pathinfo($path);
+
+        foreach (self::WIDTHS as $target) {
+            if ($target >= $width) {
+                continue;
+            }
+
+            $targetHeight = (int) round($height * $target / $width);
+            $copy = imagecreatetruecolor($target, $targetHeight);
+
+            // Прозрачность PNG и WebP не должна превратиться в чёрный фон
+            imagealphablending($copy, false);
+            imagesavealpha($copy, true);
+
+            imagecopyresampled($copy, $image, 0, 0, 0, 0, $target, $targetHeight, $width, $height);
+
+            $this->write($copy, $info['dirname'] . '/' . $info['filename'] . '-' . $target . '.' . $info['extension'], $mime);
+            imagedestroy($copy);
+        }
+
+        imagedestroy($image);
+    }
+
+    private function read(string $file, string $mime): ?GdImage
+    {
+        // Форматы бывают собраны в GD выборочно: webp может отсутствовать
+        $reader = match ($mime) {
+            'image/jpeg' => 'imagecreatefromjpeg',
+            'image/png'  => 'imagecreatefrompng',
+            'image/webp' => 'imagecreatefromwebp',
+            default      => null,
+        };
+
+        if ($reader === null || !function_exists($reader)) {
+            return null;
+        }
+
+        $image = @$reader($file);
+
+        return $image === false ? null : $image;
+    }
+
+    private function write(GdImage $image, string $path, string $mime): bool
+    {
+        if ($mime === 'image/png' || $mime === 'image/webp') {
+            imagealphablending($image, false);
+            imagesavealpha($image, true);
+        }
+
+        $writer = match ($mime) {
+            'image/jpeg' => 'imagejpeg',
+            'image/png'  => 'imagepng',
+            'image/webp' => 'imagewebp',
+            default      => null,
+        };
+
+        if ($writer === null || !function_exists($writer)) {
+            return false;
+        }
+
+        return $writer === 'imagepng'
+            ? imagepng($image, $path, 8)
+            : $writer($image, $path, 86);
+    }
+
+    /**
+     * SVG — это разметка, а не картинка: в нём может быть скрипт или ссылка
+     * на чужой сервер. Такие файлы не чиним, а отклоняем целиком.
+     */
+    private function cleanSvg(string $svg): ?string
+    {
+        $probe = strtolower($svg);
+
+        foreach (['<script', 'javascript:', 'onload=', 'onerror=', 'onclick=', '<foreignobject', '<!entity', 'xlink:href="http', 'href="http'] as $needle) {
+            if (str_contains($probe, $needle)) {
+                return null;
+            }
+        }
+
+        return $svg;
+    }
+
+    /** @return array{0:int,1:int} */
+    private function svgSize(string $svg): array
+    {
+        if (preg_match('~viewBox\s*=\s*"[\d.\s-]*?([\d.]+)\s+([\d.]+)"~i', $svg, $m)) {
+            return [(int) round((float) $m[1]), (int) round((float) $m[2])];
+        }
+
+        $width = preg_match('~\bwidth\s*=\s*"(\d+)~i', $svg, $w) ? (int) $w[1] : 0;
+        $height = preg_match('~\bheight\s*=\s*"(\d+)~i', $svg, $h) ? (int) $h[1] : 0;
+
+        return [$width, $height];
+    }
+}

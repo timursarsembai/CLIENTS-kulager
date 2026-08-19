@@ -1,0 +1,96 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * @var Site   $site
+ * @var Admin  $admin
+ * @var Auth   $auth
+ * @var string $content
+ * @var string $title
+ * @var array  $messages
+ */
+
+$user = $auth->check() ? $auth->user() : null;
+?>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title><?= e($title !== '' ? $title . ' — админка KULAGER' : 'Админка KULAGER') ?></title>
+<link rel="stylesheet" href="<?= e($site->asset('css/admin.css')) ?>">
+</head>
+<body>
+
+<?php if ($user): ?>
+<header class="topbar">
+  <a href="<?= e($admin->url()) ?>" class="topbar__brand">KULAGER<span>админка</span></a>
+
+  <nav class="topbar__nav">
+    <a href="<?= e($admin->url('pages')) ?>">Страницы</a>
+    <a href="<?= e($admin->url('menu')) ?>">Меню</a>
+    <a href="<?= e($admin->url('leads')) ?>">Заявки</a>
+    <a href="<?= e($admin->url('media')) ?>">Медиатека</a>
+    <a href="<?= e($admin->url('settings')) ?>">Настройки</a>
+    <?php if ($auth->isAdmin()): ?>
+      <a href="<?= e($admin->url('users')) ?>">Пользователи</a>
+      <a href="<?= e($admin->url('seo')) ?>">SEO</a>
+      <a href="<?= e($admin->url('themes')) ?>">Оформление</a>
+      <a href="<?= e($admin->url('system')) ?>">Состояние</a>
+    <?php endif; ?>
+    <a href="/" target="_blank" rel="noopener">Сайт ↗</a>
+  </nav>
+
+  <form method="post" action="<?= e($admin->url('logout')) ?>" class="topbar__user">
+    <?= Csrf::field() ?>
+    <a href="<?= e($admin->url('profile')) ?>"><?= e($user['name'] ?: $user['email']) ?></a>
+    <button type="submit" class="link">Выйти</button>
+  </form>
+</header>
+<?php endif; ?>
+
+<main class="<?= $user ? 'shell' : 'shell shell--narrow' ?>">
+  <?php foreach ($messages as $message): ?>
+    <div class="notice notice--ok"><?= e($message) ?></div>
+  <?php endforeach; ?>
+
+  <?= $content ?>
+</main>
+
+<?php if ($user): ?>
+<?php /* Окно выбора картинки: одно на страницу, открывается из любого поля */ ?>
+<div class="picker" data-picker hidden>
+  <div class="picker__backdrop" data-picker-close></div>
+
+  <div class="picker__window" role="dialog" aria-modal="true" aria-label="Выбор изображения">
+    <div class="picker__head">
+      <div class="picker__tabs">
+        <button type="button" class="picker__tab is-active" data-picker-tab="library">Библиотека</button>
+        <button type="button" class="picker__tab" data-picker-tab="upload">Загрузить</button>
+      </div>
+      <button type="button" class="picker__close" data-picker-close title="Закрыть">✕</button>
+    </div>
+
+    <div class="picker__body" data-picker-panel="library">
+      <p class="picker__empty" data-picker-status>Загружаем библиотеку…</p>
+      <div class="picker__grid" data-picker-grid></div>
+    </div>
+
+    <div class="picker__body" data-picker-panel="upload" hidden>
+      <label class="picker__drop" data-picker-drop>
+        <input type="file" name="files[]" accept="image/*" multiple data-picker-file hidden>
+        <span class="picker__drop-title">Перетащите файлы сюда</span>
+        <span class="picker__drop-hint">или нажмите, чтобы выбрать на компьютере</span>
+      </label>
+      <p class="picker__empty" data-picker-upload-status hidden></p>
+    </div>
+  </div>
+</div>
+
+<script nonce="<?= e($admin->nonce()) ?>">window.KULAGER_TOKEN = <?= json_encode(Csrf::token()) ?>;</script>
+<?php endif; ?>
+
+<script src="<?= e($site->asset('js/admin.js')) ?>" defer></script>
+</body>
+</html>
