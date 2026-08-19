@@ -22,7 +22,7 @@ $offer = $block['offer'] ?? null;
   <div class="product">
     <div data-gallery>
       <div class="product__stage">
-        <img src="<?= e($site->asset($block['gallery'][0])) ?>" alt="<?= e($block['alt'] ?? '') ?>" data-gallery-stage>
+        <img src="<?= e($site->asset($block['gallery'][0])) ?>"<?= $view->editableImage($block, 'gallery.0') ?> alt="<?= e($block['alt'] ?? '') ?>" data-gallery-stage>
       </div>
       <div class="product__thumbs">
         <?php foreach ($block['gallery'] as $index => $shot): ?>
@@ -31,7 +31,7 @@ $offer = $block['offer'] ?? null;
                   data-gallery-thumb="<?= e($site->asset($shot)) ?>"
                   aria-current="<?= $index === 0 ? 'true' : 'false' ?>"
                   aria-label="Снимок <?= e((string) ($index + 1)) ?>">
-            <img src="<?= e($site->asset($shot)) ?>" alt="" loading="lazy">
+            <img src="<?= e($site->asset($shot)) ?>" alt="" loading="lazy"<?= $view->editableImage($block, "gallery.$index") ?>>
           </button>
         <?php endforeach; ?>
       </div>

@@ -17,6 +17,6 @@ declare(strict_types=1);
       </div>
     </div>
 
-    <img src="<?= e($site->asset($block['image'])) ?>" alt="<?= e($block['alt'] ?? '') ?>" style="width: 100%; aspect-ratio: 4/3; object-fit: cover; border: 1px solid var(--line)">
+    <img src="<?= e($site->asset($block['image'])) ?>"<?= $view->editableImage($block, 'image') ?> alt="<?= e($block['alt'] ?? '') ?>" style="width: 100%; aspect-ratio: 4/3; object-fit: cover; border: 1px solid var(--line)">
   </div>
 </section>

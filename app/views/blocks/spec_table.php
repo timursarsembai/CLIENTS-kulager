@@ -34,7 +34,7 @@ $hasImage = !empty($block['image']);
     </div>
 
     <?php if ($hasImage): ?>
-      <img src="<?= e($site->asset($block['image'])) ?>" alt="<?= e($block['alt'] ?? '') ?>" style="width: 100%; background: #fff; border: 1px solid var(--line)">
+      <img src="<?= e($site->asset($block['image'])) ?>"<?= $view->editableImage($block, 'image') ?> alt="<?= e($block['alt'] ?? '') ?>" style="width: 100%; background: #fff; border: 1px solid var(--line)">
     <?php endif; ?>
   </div>
 

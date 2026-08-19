@@ -43,7 +43,7 @@ declare(strict_types=1);
     </div>
 
     <div class="split__media">
-      <img src="<?= e($site->asset($block['image'])) ?>" alt="<?= e($block['alt'] ?? '') ?>">
+      <img src="<?= e($site->asset($block['image'])) ?>"<?= $view->editableImage($block, 'image') ?> alt="<?= e($block['alt'] ?? '') ?>">
     </div>
   </div>
 </section>

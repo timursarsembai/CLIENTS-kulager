@@ -10,7 +10,7 @@ declare(strict_types=1);
   <div class="grid-gap" style="--min: 340px">
     <?php foreach ($block['items'] as $index => $model): ?>
       <article class="model<?= !empty($model['featured']) ? ' model--featured' : '' ?>">
-        <img src="<?= e($site->asset($model['image'])) ?>" alt="<?= e($model['alt']) ?>">
+        <img src="<?= e($site->asset($model['image'])) ?>"<?= $view->editableImage($block, "items.$index.image") ?> alt="<?= e($model['alt']) ?>">
         <div class="model__body">
           <div class="model__head">
             <h3 class="model__name"><a href="<?= e($site->url($model['url'])) ?>"<?= $view->editable($block, "items.$index.title") ?>><?= e($model['title']) ?></a></h3>

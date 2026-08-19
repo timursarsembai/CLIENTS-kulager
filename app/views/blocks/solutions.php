@@ -11,7 +11,7 @@ $featured = $block['featured'];
   <p class="lead"<?= $view->editable($block, 'lead') ?>><?= e($block['lead'] ?? '') ?></p>
 
   <article class="solution">
-    <img src="<?= e($site->asset($featured['image'])) ?>" alt="<?= e($featured['alt']) ?>">
+    <img src="<?= e($site->asset($featured['image'])) ?>"<?= $view->editableImage($block, 'featured.image') ?> alt="<?= e($featured['alt']) ?>">
     <div class="solution__body">
       <div class="badge-row">
         <span class="kicker kicker--sm" style="margin-bottom: 0"<?= $view->editable($block, 'featured.kicker') ?>><?= e($featured['kicker']) ?></span>
@@ -30,7 +30,7 @@ $featured = $block['featured'];
   <div class="grid-gap" style="--min: 400px">
     <?php foreach ($block['cards'] as $index => $card): ?>
       <article class="card" data-zoom>
-        <img src="<?= e($site->asset($card['image'])) ?>" alt="<?= e($card['alt']) ?>">
+        <img src="<?= e($site->asset($card['image'])) ?>"<?= $view->editableImage($block, "cards.$index.image") ?> alt="<?= e($card['alt']) ?>">
         <div class="card__body">
           <div class="badge-row" style="margin-bottom: 14px">
             <span class="kicker kicker--sm" style="margin-bottom: 0"<?= $view->editable($block, "cards.$index.kicker") ?>><?= e($card['kicker']) ?></span>
@@ -66,7 +66,7 @@ $featured = $block['featured'];
       <div class="grid-lines" style="--min: 280px">
         <?php foreach ($special['items'] as $index => $item): ?>
           <article class="card card--flat card--3x2" data-zoom>
-            <img src="<?= e($site->asset($item['image'])) ?>" alt="<?= e($item['alt']) ?>">
+            <img src="<?= e($site->asset($item['image'])) ?>"<?= $view->editableImage($block, "special.items.$index.image") ?> alt="<?= e($item['alt']) ?>">
             <div class="card__body card__body--sm">
               <div class="badge-row" style="gap: 10px; margin-bottom: 12px">
                 <span class="kicker kicker--xs"<?= $view->editable($block, "special.items.$index.kicker") ?>><?= e($item['kicker']) ?></span>

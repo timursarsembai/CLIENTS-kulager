@@ -16,6 +16,9 @@
   var status = document.querySelector('[data-edit-status]');
   var timer = null;
 
+  // Окно выбора картинки показывает свои сообщения через ту же строку в панели
+  window.KULAGER_FLASH = function (text, isError) { say(text, isError); };
+
   function say(text, isError) {
     if (!status) return;
 
@@ -133,6 +136,97 @@
       event.stopPropagation();
     }, true);
   });
+
+  /* ------------------------------------------------------------ картинки */
+
+  /**
+   * Замена картинки прямо на странице.
+   *
+   * Кнопку не вставляем рядом с каждым <img>: обложка растянута на весь экран,
+   * карточки лежат в сетке — любая вставка в разметку поехала бы. Вместо этого
+   * одна плавающая кнопка переставляется к той картинке, над которой курсор.
+   */
+  var images = document.querySelectorAll('[data-edit-image]');
+
+  if (images.length > 0 && window.KulagerPicker && window.KulagerPicker.available) {
+    var button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'edit-image-btn';
+    button.textContent = 'Заменить картинку';
+    button.hidden = true;
+    document.body.appendChild(button);
+
+    var target = null;
+
+    var place = function (image) {
+      var box = image.getBoundingClientRect();
+
+      // Ушла из виду — прячем кнопку вместе с ней
+      if (box.bottom < 0 || box.top > window.innerHeight) {
+        hide();
+        return;
+      }
+
+      target = image;
+      button.hidden = false;
+      button.style.top = Math.max(8, box.top + 12) + 'px';
+      button.style.left = Math.min(window.innerWidth - 16, box.right - 12) + 'px';
+    };
+
+    var hide = function () {
+      button.hidden = true;
+      target = null;
+    };
+
+    var replace = function (image) {
+      window.KulagerPicker.open(function (path) {
+        var body = new FormData();
+        body.append('_token', window.KULAGER_EDIT_TOKEN || '');
+        body.append('block', image.getAttribute('data-edit-block'));
+        body.append('path', image.getAttribute('data-edit-image'));
+        body.append('value', path);
+
+        say('Сохраняем…');
+
+        fetch('/admin/inline', { method: 'POST', body: body, credentials: 'same-origin' })
+          .then(function (response) { return response.json(); })
+          .then(function (data) {
+            if (!data || data.error) {
+              say((data && data.error) || 'Не сохранилось', true);
+              return;
+            }
+
+            // Показываем новую картинку сразу, не перезагружая страницу
+            image.src = '/assets/' + path;
+            say('Картинка заменена');
+          })
+          .catch(function () { say('Нет связи с сервером', true); });
+      });
+    };
+
+    Array.prototype.forEach.call(images, function (image) {
+      image.classList.add('is-editable-image');
+
+      image.addEventListener('mouseenter', function () { place(image); });
+      image.addEventListener('click', function (event) {
+        event.preventDefault();
+        replace(image);
+      });
+    });
+
+    button.addEventListener('click', function () {
+      if (target) replace(target);
+    });
+
+    // Кнопка исчезает, когда курсор ушёл и с картинки, и с самой кнопки
+    document.addEventListener('mouseover', function (event) {
+      if (!event.target.closest('[data-edit-image], .edit-image-btn')) hide();
+    });
+
+    window.addEventListener('scroll', function () {
+      if (target) place(target);
+    }, { passive: true });
+  }
 
   // Карточка целиком бывает ссылкой — в режиме правки это мешает
   document.querySelectorAll('a.cell--link').forEach(function (card) {

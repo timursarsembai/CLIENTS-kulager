@@ -48,6 +48,7 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 <?php endif; ?>
 </style>
 <link rel="stylesheet" href="<?= e($site->asset('css/admin.css')) ?>">
+<link rel="stylesheet" href="<?= e($site->asset('css/picker.css')) ?>">
 </head>
 <body>
 
@@ -113,37 +114,12 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 
 <?php if ($user): ?>
 <?php /* Окно выбора картинки: одно на страницу, открывается из любого поля */ ?>
-<div class="picker" data-picker hidden>
-  <div class="picker__backdrop" data-picker-close></div>
-
-  <div class="picker__window" role="dialog" aria-modal="true" aria-label="Выбор изображения">
-    <div class="picker__head">
-      <div class="picker__tabs">
-        <button type="button" class="picker__tab is-active" data-picker-tab="library">Библиотека</button>
-        <button type="button" class="picker__tab" data-picker-tab="upload">Загрузить</button>
-      </div>
-      <button type="button" class="picker__close" data-picker-close title="Закрыть">✕</button>
-    </div>
-
-    <div class="picker__body" data-picker-panel="library">
-      <p class="picker__empty" data-picker-status>Загружаем библиотеку…</p>
-      <div class="picker__grid" data-picker-grid></div>
-    </div>
-
-    <div class="picker__body" data-picker-panel="upload" hidden>
-      <label class="picker__drop" data-picker-drop>
-        <input type="file" name="files[]" accept="image/*" multiple data-picker-file hidden>
-        <span class="picker__drop-title">Перетащите файлы сюда</span>
-        <span class="picker__drop-hint">или нажмите, чтобы выбрать на компьютере</span>
-      </label>
-      <p class="picker__empty" data-picker-upload-status hidden></p>
-    </div>
-  </div>
-</div>
+<?= $view->partial('picker') ?>
 
 <script nonce="<?= e($admin->nonce()) ?>">window.KULAGER_TOKEN = <?= json_encode(Csrf::token()) ?>;</script>
 <?php endif; ?>
 
+<script src="<?= e($site->asset('js/picker.js')) ?>" defer></script>
 <script src="<?= e($site->asset('js/admin.js')) ?>" defer></script>
 </body>
 </html>

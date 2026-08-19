@@ -800,78 +800,7 @@ code {
 .menu-add__body { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
 .menu-add__body input { flex: 1 1 200px; }
 
-/* ------------------------------------------------------- окно выбора картинки */
-
-body.is-locked { overflow: hidden; }
-
-.picker { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.picker[hidden] { display: none; }
-.picker__backdrop { position: absolute; inset: 0; background: rgba(20, 20, 18, .55); }
-
-.picker__window {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  width: min(920px, 100%);
-  max-height: min(680px, 100%);
-  background: var(--card, #fff);
-  border: 1px solid var(--line);
-  border-radius: 0;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
-  overflow: hidden;
-}
-
-.picker__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding: 0 8px 0 0; }
-.picker__tabs { display: flex; }
-.picker__tab {
-  border: 0;
-  border-bottom: 2px solid transparent;
-  background: none;
-  padding: 14px 18px;
-  font: inherit;
-  color: var(--text-2, #666);
-  cursor: pointer;
-}
-.picker__tab.is-active { color: inherit; border-bottom-color: var(--accent, #7a8b3a); }
-.picker__close { border: 0; background: none; font-size: 18px; line-height: 1; padding: 10px 12px; cursor: pointer; color: var(--text-2, #666); }
-
-.picker__body { padding: 16px; overflow: auto; }
-.picker__body[hidden] { display: none; }
-.picker__empty { margin: 0 0 12px; color: var(--text-2, #666); }
-
-.picker__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
-.picker__item {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  border: 1px solid var(--line);
-  border-radius: 0;
-  background: var(--bg);
-  padding: 8px;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.picker__item:hover { border-color: var(--accent, #7a8b3a); }
-.picker__item img { width: 100%; height: 96px; object-fit: contain; }
-.picker__item-name { font-size: 12px; color: var(--text-2, #666); overflow-wrap: anywhere; }
-
-.picker__drop {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  min-height: 220px;
-  border: 2px dashed var(--line);
-  border-radius: 0;
-  cursor: pointer;
-  text-align: center;
-  padding: 20px;
-}
-.picker__drop.is-over { border-color: var(--accent, #7a8b3a); background: var(--bg); }
-.picker__drop-title { font-size: 16px; }
-.picker__drop-hint { font-size: 13px; color: var(--text-2, #666); }
+/* Окно выбора картинки вынесено в picker.css — оно общее с сайтом */
 
 /* ------------------------------------------------------ поле ссылки на страницу */
 

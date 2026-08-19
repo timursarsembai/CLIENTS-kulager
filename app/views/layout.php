@@ -135,6 +135,7 @@ foreach ($themes as $id => $theme) {
 <?php if ($site->adminSession()): ?>
   <?php /* Панель администратора: видна вошедшему, гостю её нет в разметке вовсе */ ?>
   <link rel="stylesheet" href="<?= e($site->asset('css/edit.css')) ?>">
+  <link rel="stylesheet" href="<?= e($site->asset('css/picker.css')) ?>">
 
   <?= $view->partial('adminbar', [
       'adminBase' => '/' . trim((string) $site->config('admin_path', 'admin'), '/'),
@@ -142,7 +143,11 @@ foreach ($themes as $id => $theme) {
   ]) ?>
 
   <?php if ($site->editMode()): ?>
+    <?php /* То же окно выбора картинки, что и в админке */ ?>
+    <?= $view->partial('picker') ?>
+
     <script>window.KULAGER_EDIT_TOKEN = <?= json_encode(Csrf::token()) ?>;</script>
+    <script src="<?= e($site->asset('js/picker.js')) ?>" defer></script>
     <script src="<?= e($site->asset('js/edit.js')) ?>" defer></script>
   <?php endif; ?>
 <?php endif; ?>

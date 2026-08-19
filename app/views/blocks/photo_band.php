@@ -4,7 +4,7 @@ declare(strict_types=1);
 /** @var Site $site @var View $view @var array $block */
 ?>
 <section class="hero">
-  <img src="<?= e($site->asset($block['image'])) ?>" alt="<?= e($block['alt'] ?? '') ?>" class="hero__photo">
+  <img src="<?= e($site->asset($block['image'])) ?>"<?= $view->editableImage($block, 'image') ?> alt="<?= e($block['alt'] ?? '') ?>" class="hero__photo">
   <div class="hero__scrim"></div>
 
   <div class="hero__body">

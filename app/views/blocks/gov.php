@@ -14,7 +14,7 @@ $callout = $block['callout'] ?? null;
     <div class="grid-gap" style="--min: 340px; margin-bottom: 32px">
       <?php foreach ($block['cards'] as $index => $card): ?>
         <article class="card card--2" data-zoom>
-          <img src="<?= e($site->asset($card['image'])) ?>" alt="<?= e($card['alt']) ?>">
+          <img src="<?= e($site->asset($card['image'])) ?>"<?= $view->editableImage($block, "cards.$index.image") ?> alt="<?= e($card['alt']) ?>">
           <div class="card__body card__body--md">
             <div class="kicker kicker--sm"<?= $view->editable($block, "cards.$index.kicker") ?>><?= e($card['kicker']) ?></div>
             <h3 class="card__title card__title--md"<?= $view->editable($block, "cards.$index.title") ?>><?= e($card['title']) ?></h3>

@@ -21,7 +21,7 @@ $base = $block['base'] ?? null;
     <?php if ($base): ?>
     <div class="platform__base">
       <div class="kicker kicker--sm" style="font-weight: 700; margin-bottom: 16px"<?= $view->editable($block, 'base.label') ?>><?= e($base['label']) ?></div>
-      <img src="<?= e($site->asset($base['image'])) ?>" alt="<?= e($base['alt']) ?>">
+      <img src="<?= e($site->asset($base['image'])) ?>"<?= $view->editableImage($block, 'base.image') ?> alt="<?= e($base['alt']) ?>">
       <h3 class="h3" style="font-size: 22px; line-height: 1.12"<?= $view->editable($block, 'base.title') ?>><?= e($base['title']) ?></h3>
       <p class="text" style="margin-bottom: 18px; color: var(--text-5)"<?= $view->editable($block, 'base.text') ?>><?= e($base['text']) ?></p>
       <div class="platform__specs">
@@ -46,7 +46,7 @@ $base = $block['base'] ?? null;
 
     <?php if (!$base && !empty($block['image'])): ?>
       <div>
-        <img src="<?= e($site->asset($block['image'])) ?>" alt="<?= e($block['alt'] ?? '') ?>" style="width: 100%; aspect-ratio: 4/3; object-fit: cover; border: 1px solid var(--line)">
+        <img src="<?= e($site->asset($block['image'])) ?>"<?= $view->editableImage($block, 'image') ?> alt="<?= e($block['alt'] ?? '') ?>" style="width: 100%; aspect-ratio: 4/3; object-fit: cover; border: 1px solid var(--line)">
         <?php if (!empty($block['caption'])): ?>
           <p class="note" style="margin-top: 12px"<?= $view->editable($block, 'caption') ?>><?= e($block['caption']) ?></p>
         <?php endif; ?>

@@ -24,7 +24,7 @@ declare(strict_types=1);
     </div>
 
     <?php if (!empty($block['image'])): ?>
-      <img src="<?= e($site->asset($block['image'])) ?>" alt="<?= e($block['alt'] ?? '') ?>" style="width: 100%; border: 1px solid var(--line)">
+      <img src="<?= e($site->asset($block['image'])) ?>"<?= $view->editableImage($block, 'image') ?> alt="<?= e($block['alt'] ?? '') ?>" style="width: 100%; border: 1px solid var(--line)">
     <?php endif; ?>
   </div>
 </section>

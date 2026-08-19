@@ -44,6 +44,22 @@ final class View
     }
 
     /**
+     * Метка редактируемой картинки: по клику откроется библиотека медиафайлов.
+     *
+     * Ставится прямо в тег <img>, путь — как у обычных полей блока:
+     * `image`, `gallery.0`, `items.2.image`.
+     */
+    public function editableImage(array $block, string $path): string
+    {
+        if (!$this->site->editMode() || !isset($block['_id'])) {
+            return '';
+        }
+
+        return ' data-edit-block="' . (int) $block['_id'] . '"'
+            . ' data-edit-image="' . htmlspecialchars($path, ENT_QUOTES, 'UTF-8') . '"';
+    }
+
+    /**
      * Метка редактируемого пункта меню.
      *
      * Блок «Отрасли применения» и подвал берут названия из меню, а не из

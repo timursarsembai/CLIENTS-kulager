@@ -482,194 +482,23 @@
 
   /* ------------------------------------------------------ окно выбора картинки */
 
-  var picker = document.querySelector('[data-picker]');
-  var pickerTarget = null;
-  var pickerLoaded = false;
-
+  /* Само окно живёт в assets/js/picker.js — оно общее с сайтом */
   function openPicker(input) {
-    if (!picker) return;
+    if (!window.KulagerPicker || !window.KulagerPicker.available) return;
 
-    pickerTarget = input;
-    picker.hidden = false;
-    document.body.classList.add('is-locked');
-    showPickerTab('library');
-
-    if (!pickerLoaded) loadPickerLibrary();
-  }
-
-  function closePicker() {
-    if (!picker) return;
-
-    picker.hidden = true;
-    pickerTarget = null;
-    document.body.classList.remove('is-locked');
-  }
-
-  function showPickerTab(name) {
-    picker.querySelectorAll('[data-picker-tab]').forEach(function (tab) {
-      tab.classList.toggle('is-active', tab.getAttribute('data-picker-tab') === name);
+    window.KulagerPicker.open(function (path) {
+      input.value = path;
+      input.dispatchEvent(new Event('change'));
     });
-
-    picker.querySelectorAll('[data-picker-panel]').forEach(function (panel) {
-      panel.hidden = panel.getAttribute('data-picker-panel') !== name;
-    });
-  }
-
-  /** Подставляет выбранный файл в поле, из которого открыли окно. */
-  function choosePicked(path) {
-    if (pickerTarget) {
-      pickerTarget.value = path;
-      pickerTarget.dispatchEvent(new Event('change'));
-      flash('Картинка выбрана');
-    }
-
-    closePicker();
-  }
-
-  function loadPickerLibrary() {
-    var grid = picker.querySelector('[data-picker-grid]');
-    var status = picker.querySelector('[data-picker-status]');
-
-    fetch('/admin/media/json', { credentials: 'same-origin' })
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        var items = (data && data.items) || [];
-        pickerLoaded = true;
-        grid.innerHTML = '';
-
-        if (items.length === 0) {
-          status.hidden = false;
-          status.textContent = 'В библиотеке пока пусто — загрузите файл на соседней вкладке.';
-          return;
-        }
-
-        status.hidden = true;
-        items.forEach(function (item) { grid.appendChild(pickerCard(item)); });
-      })
-      .catch(function () {
-        status.hidden = false;
-        status.textContent = 'Не удалось загрузить библиотеку.';
-      });
-  }
-
-  function pickerCard(item) {
-    var card = document.createElement('button');
-    card.type = 'button';
-    card.className = 'picker__item';
-    card.setAttribute('data-picker-choose', item.path);
-
-    var image = document.createElement('img');
-    image.src = '/assets/' + item.path;
-    image.alt = item.alt || '';
-    image.loading = 'lazy';
-
-    var caption = document.createElement('span');
-    caption.className = 'picker__item-name';
-    caption.textContent = item.name;
-
-    card.appendChild(image);
-    card.appendChild(caption);
-
-    return card;
-  }
-
-  function uploadPicked(files) {
-    if (!files || files.length === 0) return;
-
-    var status = picker.querySelector('[data-picker-upload-status]');
-    var form = new FormData();
-
-    form.append('_token', window.KULAGER_TOKEN || '');
-    form.append('json', '1');
-
-    Array.prototype.forEach.call(files, function (file) {
-      form.append('files[]', file);
-    });
-
-    status.hidden = false;
-    status.textContent = 'Загружаем…';
-
-    fetch('/admin/media/upload', { method: 'POST', body: form, credentials: 'same-origin' })
-      .then(function (response) { return response.json(); })
-      .then(function (data) {
-        var uploaded = (data && data.uploaded) || [];
-        var errors = (data && data.errors) || [];
-
-        if (errors.length > 0) {
-          status.textContent = errors.join('; ');
-        } else {
-          status.hidden = true;
-        }
-
-        if (uploaded.length === 0) return;
-
-        // Библиотеку перечитываем, чтобы новые файлы были на месте и дальше
-        pickerLoaded = false;
-        loadPickerLibrary();
-        choosePicked(uploaded[0].path);
-      })
-      .catch(function () {
-        status.hidden = false;
-        status.textContent = 'Не удалось загрузить файл.';
-      });
-  }
-
-  if (picker) {
-    picker.addEventListener('click', function (event) {
-      if (event.target.closest('[data-picker-close]')) {
-        closePicker();
-        return;
-      }
-
-      var tab = event.target.closest('[data-picker-tab]');
-      if (tab) {
-        showPickerTab(tab.getAttribute('data-picker-tab'));
-        return;
-      }
-
-      var choose = event.target.closest('[data-picker-choose]');
-      if (choose) choosePicked(choose.getAttribute('data-picker-choose'));
-    });
-
-    document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && !picker.hidden) closePicker();
-    });
-
-    var fileInput = picker.querySelector('[data-picker-file]');
-    var drop = picker.querySelector('[data-picker-drop]');
-
-    if (fileInput) {
-      fileInput.addEventListener('change', function () {
-        uploadPicked(fileInput.files);
-        fileInput.value = '';
-      });
-    }
-
-    if (drop) {
-      ['dragenter', 'dragover'].forEach(function (name) {
-        drop.addEventListener(name, function (event) {
-          event.preventDefault();
-          drop.classList.add('is-over');
-        });
-      });
-
-      ['dragleave', 'drop'].forEach(function (name) {
-        drop.addEventListener(name, function (event) {
-          event.preventDefault();
-          drop.classList.remove('is-over');
-        });
-      });
-
-      drop.addEventListener('drop', function (event) {
-        uploadPicked(event.dataTransfer && event.dataTransfer.files);
-      });
-    }
   }
 
   bindRichtext(document);
   bindImagePreview(document);
 
   /* ------------------------------------------------------ короткие сообщения */
+
+  // Общему окну выбора нужен способ показать сообщение — отдаём свой
+  window.KULAGER_FLASH = function (text, isError) { flash(text, isError); };
 
   function flash(text, isError) {
     var note = document.createElement('div');
