@@ -100,8 +100,8 @@ foreach ($themes as $id => $theme) {
 <?php endif; ?>
 
 <?php /* JSON_HEX_TAG: строка «</script>» внутри данных иначе закрыла бы этот тег */ ?>
-<script id="kulager-themes" type="application/json"><?= json_encode($themesJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
-<script>
+<script id="kulager-themes" type="application/json" <?= $site->nonceAttr() ?>><?= json_encode($themesJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
+<script <?= $site->nonceAttr() ?>>
 /* Тема применяется до первой отрисовки, иначе страница мигает чужими цветами */
 (function () {
   try {
@@ -152,7 +152,7 @@ foreach ($themes as $id => $theme) {
     <?php /* То же окно выбора картинки, что и в админке */ ?>
     <?= $view->partial('picker') ?>
 
-    <script>window.KULAGER_EDIT_TOKEN = <?= json_encode(Csrf::token()) ?>;</script>
+    <script <?= $site->nonceAttr() ?>>window.KULAGER_EDIT_TOKEN = <?= json_encode(Csrf::token(), JSON_HEX_TAG) ?>;</script>
     <script src="<?= e($site->asset('js/picker.js')) ?>" defer></script>
     <script src="<?= e($site->asset('js/edit.js')) ?>" defer></script>
   <?php endif; ?>

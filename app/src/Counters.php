@@ -40,7 +40,7 @@ final class Counters
             $out .= $this->googleAnalytics($ga);
         }
 
-        $out .= trim($this->settings->get('counter_head', ''));
+        $out .= self::allowScripts(trim($this->settings->get('counter_head', '')));
 
         return $out;
     }
@@ -48,7 +48,27 @@ final class Counters
     /** Код перед </body>: чаты, пиксели и прочее, что просят ставить внизу. */
     public function body(): string
     {
-        return trim($this->settings->get('counter_body', ''));
+        return self::allowScripts(trim($this->settings->get('counter_body', '')));
+    }
+
+    /**
+     * Помечает вставленные вручную скрипты меткой разового номера.
+     *
+     * Политика безопасности пускает скрипт только с такой пометкой. Код
+     * счётчика человек вставляет как дал сервис — про пометку он не знает,
+     * поэтому проставляем её сами, иначе счётчик молча не заработает.
+     */
+    private static function allowScripts(string $html): string
+    {
+        if ($html === '') {
+            return '';
+        }
+
+        return (string) preg_replace(
+            '~<script(?![^>]*\bnonce=)~i',
+            '<script nonce="' . Site::NONCE_MARK . '"',
+            $html
+        );
     }
 
     public function used(): bool
@@ -94,8 +114,10 @@ final class Counters
 
     private function metrika(string $id): string
     {
+        $nonce = Site::NONCE_MARK;
+
         return <<<HTML
-        <script>
+        <script nonce="{$nonce}">
         (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
         m[i].l=1*new Date();k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
         (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
@@ -108,9 +130,11 @@ final class Counters
 
     private function googleAnalytics(string $id): string
     {
+        $nonce = Site::NONCE_MARK;
+
         return <<<HTML
-        <script async src="https://www.googletagmanager.com/gtag/js?id={$id}"></script>
-        <script>
+        <script async nonce="{$nonce}" src="https://www.googletagmanager.com/gtag/js?id={$id}"></script>
+        <script nonce="{$nonce}">
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());

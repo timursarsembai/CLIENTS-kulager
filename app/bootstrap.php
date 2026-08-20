@@ -20,12 +20,31 @@ $services = require APP_DIR . '/init.php';
  * Политика безопасности. Домены счётчиков берутся из настроек: без них
  * браузер заблокирует скрипт Метрики или Google, и счётчик не заработает.
  */
+/*
+ * Разовый номер для встроенных скриптов. Свой на каждый запрос, поэтому
+ * в разметке стоит метка Site::NONCE_MARK, а подстановка идёт перед самой
+ * отдачей — и для собранной страницы, и для взятой из кэша.
+ */
+$nonce = base64_encode(random_bytes(12));
+
 if (!headers_sent()) {
     $scriptHosts = implode(' ', $services['counters']->hosts());
 
     header(
         "Content-Security-Policy: default-src 'self'; "
-        . "script-src 'self' 'unsafe-inline' " . $scriptHosts . '; '
+        /*
+         * Скрипты — только свои файлы, помеченные разовым номером вставки
+         * и домены счётчиков. Без номера чужой скрипт, пробравшийся в текст
+         * блока, браузер выполнять откажется.
+         */
+        . "script-src 'self' 'nonce-" . $nonce . "' " . $scriptHosts . '; '
+        /*
+         * Со стилями иначе: вёрстка сайта пользуется атрибутом style в сотне
+         * мест (ширина колонки, доля показателя, фоновая картинка блока),
+         * а номер на атрибуты не распространяется. Оставляем как есть:
+         * подмена стиля не даёт выполнить код, а значения тем чистятся
+         * при сохранении.
+         */
         . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
         . "font-src 'self' https://fonts.gstatic.com; "
         . "img-src 'self' data: " . $scriptHosts . '; '
@@ -48,7 +67,7 @@ $key = ($_SERVER['HTTP_HOST'] ?? '') . '|' . ($_SERVER['REQUEST_URI'] ?? '/');
 $cached = $cache->get($key);
 
 if ($cached !== null) {
-    echo $cached;
+    echo str_replace(Site::NONCE_MARK, $nonce, $cached);
 
     return;
 }
@@ -59,7 +78,8 @@ ob_start();
 $router->dispatch($_SERVER['REQUEST_URI'] ?? '/');
 $html = (string) ob_get_clean();
 
-echo $html;
+// В кэш идёт разметка с меткой, посетителю — с подставленным номером
+echo str_replace(Site::NONCE_MARK, $nonce, $html);
 
 // В кэш кладём только успешные ответы: 404 и редиректы запоминать нельзя
 if (http_response_code() === 200) {

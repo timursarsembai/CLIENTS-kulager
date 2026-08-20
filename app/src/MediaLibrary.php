@@ -165,8 +165,21 @@ final class MediaLibrary
 
         $name = basename((string) $item['path']);
         $base = pathinfo($name, PATHINFO_FILENAME);
+        $ext = pathinfo($name, PATHINFO_EXTENSION);
 
-        foreach (glob($this->dir . '/' . $base . '*') ?: [] as $file) {
+        /*
+         * Удаляем сам файл и ровно те копии, которые сделали сами:
+         * имя-480.jpg, имя-960.jpg, имя-1600.jpg. Раньше сюда попадало
+         * всё, что начинается так же, и `logo.svg` уносил с собой
+         * `logo-2.png` — постороннюю картинку с похожим именем.
+         */
+        $files = [$this->dir . '/' . $name];
+
+        foreach (self::WIDTHS as $width) {
+            $files[] = $this->dir . '/' . $base . '-' . $width . ($ext === '' ? '' : '.' . $ext);
+        }
+
+        foreach ($files as $file) {
             if (is_file($file)) {
                 @unlink($file);
             }

@@ -388,10 +388,16 @@ code {
  * Поля оформляются по самому элементу, а не по обёртке `.field`: формы
  * попроще (новый пользователь, новая тема, добавление пункта меню) обходятся
  * без неё, и раньше поля в них оставались браузерными.
+ *
+ * Селекторы перечисляют и `.shell`, и `.gate`: у админки и у экрана входа
+ * разные обёртки, а поля должны выглядеть одинаково.
  */
 .shell input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="file"]),
+.gate input:not([type="hidden"]):not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="file"]),
 .shell select,
-.shell textarea {
+.gate select,
+.shell textarea,
+.gate textarea {
   font: inherit;
   color: var(--ink);
   background: var(--bg);
@@ -410,7 +416,8 @@ code {
 .field select,
 .field textarea { width: 100%; }
 
-.shell select {
+.shell select,
+.gate select {
   /* Свою стрелку рисуем сами: браузерная не вписывается в прямые углы */
   appearance: none;
   padding-right: 34px;
@@ -422,15 +429,19 @@ code {
 }
 
 .shell input:focus,
+.gate input:focus,
 .shell textarea:focus,
-.shell select:focus {
+.gate textarea:focus,
+.shell select:focus,
+.gate select:focus {
   outline: 2px solid var(--accent);
   outline-offset: 1px;
   border-color: var(--accent);
 }
 
 /* Пипетка и ползунок: подгоняем под ту же высоту, что и поля */
-.shell input[type="color"] {
+.shell input[type="color"],
+.gate input[type="color"] {
   width: 46px;
   height: 42px;
   padding: 3px;
@@ -440,13 +451,15 @@ code {
   cursor: pointer;
 }
 
-.shell input[type="range"] { accent-color: var(--accent); height: 42px; }
+.shell input[type="range"],
+.gate input[type="range"] { accent-color: var(--accent); height: 42px; }
 
 /*
  * Выбор файлов: браузерная кнопка выглядит чужеродно, поэтому оформляем её
  * как обычную кнопку админки. Само поле остаётся полем.
  */
-.shell input[type="file"] {
+.shell input[type="file"],
+.gate input[type="file"] {
   font: inherit;
   font-size: 14px;
   color: var(--ink-2);
@@ -454,7 +467,8 @@ code {
   padding: 8px 10px;
 }
 
-.shell input[type="file"]::file-selector-button {
+.shell input[type="file"]::file-selector-button,
+.gate input[type="file"]::file-selector-button {
   font: inherit;
   font-weight: 600;
   font-size: 14px;
@@ -467,7 +481,8 @@ code {
   cursor: pointer;
   transition: background .16s ease, border-color .16s ease, color .16s ease;
 }
-.shell input[type="file"]::file-selector-button:hover {
+.shell input[type="file"]::file-selector-button:hover,
+.gate input[type="file"]::file-selector-button:hover {
   background: var(--hover-bg);
   border-color: var(--line-5);
 }
