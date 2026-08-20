@@ -7,7 +7,8 @@
 
 body.is-locked { overflow: hidden; }
 
-.picker { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 20px; }
+/* Слой выше шапки админки и панели администратора: обе фиксированные */
+.picker { position: fixed; inset: 0; z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
 .picker[hidden] { display: none; }
 .picker__backdrop { position: absolute; inset: 0; background: rgba(20, 20, 18, .55); }
 

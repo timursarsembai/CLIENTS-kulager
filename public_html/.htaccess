@@ -14,7 +14,9 @@ DirectoryIndex index.php
     RewriteRule ^admin$ https://%{HTTP_HOST}/admin/ [R=301,L]
     RewriteRule ^admin$ /admin/ [R=301,L]
 
-    # Внутри админки существующие файлы отдаём как есть, остальное — её фронт-контроллеру
+    # Внутри админки существующие файлы отдаём как есть, остальное — её
+    # фронт-контроллеру. Каталог назван и здесь, и в config.php (admin_path):
+    # переименуете админку — поправьте оба правила выше и это.
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^admin/ admin/index.php [QSA,L]
 
