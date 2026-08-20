@@ -186,10 +186,8 @@ final class Router
             return false;
         }
 
-        if (session_status() !== PHP_SESSION_ACTIVE) {
-            session_name('kulager_admin');
-            session_start();
-        }
+        // Каталог и срок сессии заданы в Auth — здесь тот же вход, что в админке
+        Auth::startSession();
 
         return !empty($_SESSION['user_id']);
     }

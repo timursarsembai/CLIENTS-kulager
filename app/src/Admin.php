@@ -80,7 +80,7 @@ final class Admin
         }
 
         // Сессию открываем до любого вывода: без неё не выдать CSRF-токен формам
-        $this->auth->startSession();
+        Auth::startSession();
         Csrf::verify();
 
         /*

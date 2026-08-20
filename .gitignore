@@ -4,6 +4,9 @@ app/cache/
 # Журнал ошибок
 app/logs/*.log
 
+# Файлы сессий админки — свои, чтобы чужая уборка на хостинге их не трогала
+app/sessions/
+
 # Загруженные через админку файлы: это контент площадки, а не код
 public_html/assets/uploads/*
 !public_html/assets/uploads/.gitkeep

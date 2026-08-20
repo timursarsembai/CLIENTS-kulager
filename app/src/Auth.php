@@ -11,10 +11,10 @@ declare(strict_types=1);
 final class Auth
 {
     /** Сколько сессия живёт без действий редактора. */
-    private const IDLE_LIMIT = 7200;
+    private const IDLE_LIMIT = 28800;
 
     /** Сколько живёт вообще — даже если работать не переставая. */
-    private const ABSOLUTE_LIMIT = 43200;
+    private const ABSOLUTE_LIMIT = 604800;
 
     private Db $db;
     private array $config;
@@ -26,7 +26,12 @@ final class Auth
         $this->config = $config;
     }
 
-    public function startSession(): void
+    /**
+     * Открывает сессию админки. Метод статический: та же сессия читается
+     * и на публичной части — по ней сайт узнаёт вошедшего и показывает ему
+     * панель администратора.
+     */
+    public static function startSession(): void
     {
         if (session_status() === PHP_SESSION_ACTIVE) {
             return;
@@ -35,15 +40,52 @@ final class Auth
         $https = ($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off'
             || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
 
+        /*
+         * PHP сам убирает файлы сессий, к которым не обращались
+         * session.gc_maxlifetime — по умолчанию 24 минуты. Пока это меньше
+         * нашего лимита простоя, вошедшего выбрасывает намного раньше срока,
+         * который админка обещает. Поэтому срок уборки равен нашему.
+         */
+        ini_set('session.gc_maxlifetime', (string) self::IDLE_LIMIT);
+
+        // Сессию с придуманным номером не поднимаем — только со своей
+        ini_set('session.use_strict_mode', '1');
+
+        /*
+         * На общем хостинге сессии всех сайтов лежат в одном каталоге, и чужая
+         * уборка с коротким сроком чистит наши файлы заодно. Свой каталог —
+         * вне веб-корня, поэтому снаружи он недоступен.
+         */
+        $store = APP_DIR . '/sessions';
+
+        if ((is_dir($store) || @mkdir($store, 0700, true)) && is_writable($store)) {
+            session_save_path($store);
+        }
+
         session_name('kulager_admin');
         session_set_cookie_params([
-            'lifetime' => 0,
+            'lifetime' => self::IDLE_LIMIT,
             'path'     => '/',
             'httponly' => true,
             'secure'   => $https,
             'samesite' => 'Strict',
         ]);
         session_start();
+
+        /*
+         * Срок куки браузер отсчитывает от её выдачи, а не от последнего
+         * действия. Вошедшему выдаём её заново на каждой странице: пока
+         * человек работает, вход не обрывается на ровном месте.
+         */
+        if (($_SESSION['user_id'] ?? 0) > 0 && !headers_sent()) {
+            setcookie(session_name(), session_id(), [
+                'expires'  => time() + self::IDLE_LIMIT,
+                'path'     => '/',
+                'httponly' => true,
+                'secure'   => $https,
+                'samesite' => 'Strict',
+            ]);
+        }
     }
 
     /** Есть ли вообще хоть один пользователь — от этого зависит первичная установка. */
@@ -148,7 +190,7 @@ final class Auth
          * этого недостаточно, чтобы что-то сделать в админке.
          */
         if (!empty($user['totp_enabled'])) {
-            $this->startSession();
+            self::startSession();
             session_regenerate_id(true);
 
             $_SESSION['pending_user'] = (int) $user['id'];
@@ -166,7 +208,7 @@ final class Auth
 
     public function login(array $user): void
     {
-        $this->startSession();
+        self::startSession();
         session_regenerate_id(true);
 
         $_SESSION['user_id'] = (int) $user['id'];
@@ -197,7 +239,7 @@ final class Auth
     /** Ждёт ли вход подтверждения одноразовым кодом. */
     public function awaitingCode(): bool
     {
-        $this->startSession();
+        self::startSession();
 
         // Пять минут на ввод кода: дольше держать полупройденный вход незачем
         if (time() - (int) ($_SESSION['pending_since'] ?? 0) > 300) {
@@ -215,7 +257,7 @@ final class Auth
      */
     public function attemptCode(string $code): ?string
     {
-        $this->startSession();
+        self::startSession();
 
         $id = (int) ($_SESSION['pending_user'] ?? 0);
 
