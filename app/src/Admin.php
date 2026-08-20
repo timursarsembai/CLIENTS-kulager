@@ -1,50 +1,54 @@
 <?php
 declare(strict_types=1);
 
+require_once APP_DIR . '/src/AdminContext.php';
+require_once APP_DIR . '/src/AdminSection.php';
+
+foreach ([
+    'AdminAccess', 'AdminPages', 'AdminInline', 'AdminMenu', 'AdminMedia',
+    'AdminLeads', 'AdminUsers', 'AdminThemes', 'AdminSeo', 'AdminSystem',
+] as $section) {
+    require_once APP_DIR . '/src/' . $section . '.php';
+}
+
 /**
- * Админка: маршрутизация и действия.
+ * Админка: кто допущен и какому разделу передать запрос.
  *
- * Порядок допуска: первичная установка (пока нет пользователей) → вход →
- * всё остальное. Изменяющие запросы всегда проверяются на CSRF-токен.
+ * Сами действия живут в разделах (AdminPages, AdminMenu, AdminLeads…),
+ * а здесь — общий для всех порядок допуска: политика безопасности, сессия,
+ * проверка CSRF-токена, миграции, первичная установка, вход. Раздел
+ * получает запрос уже после того, как всё это пройдено.
  */
 final class Admin
 {
-    private array $config;
-    private Db $db;
-    private Site $site;
-    private PageRepository $pages;
-    private Auth $auth;
-    private Migrator $migrator;
-    private ?PageCache $cache;
-    private string $base;
+    private AdminContext $app;
+
+    /** @var array<string,AdminSection> разделы создаются по мере надобности */
+    private array $sections = [];
 
     public function __construct(array $services)
     {
-        $this->config = $services['config'];
-        $this->db = $services['db'];
-        $this->site = $services['site'];
-        $this->pages = $services['pages'];
-        $this->auth = new Auth($this->db, $this->config);
-        $this->cache = $services['cache'] ?? null;
-        $this->migrator = new Migrator($this->db);
-        $this->base = '/' . trim((string) ($this->config['admin_path'] ?? 'admin'), '/');
+        $this->app = new AdminContext($services);
     }
 
-    /** Одноразовый ключ для inline-скриптов админки. */
-    private string $nonce = '';
-
-    /** Текущий раздел — по нему подсвечивается пункт в навигации. */
-    private string $section = '';
+    /* --------------------------------- то, чем пользуются шаблоны админки */
 
     public function section(): string
     {
-        return $this->section;
+        return $this->app->section();
     }
 
     public function nonce(): string
     {
-        return $this->nonce;
+        return $this->app->nonce();
     }
+
+    public function url(string $path = ''): string
+    {
+        return $this->app->url($path);
+    }
+
+    /* ------------------------------------------------------------ маршруты */
 
     public function dispatch(string $requestUri): void
     {
@@ -54,12 +58,13 @@ final class Admin
          * свои — по одноразовому ключу. Чужой скрипт, вставленный в текст,
          * ключа не знает и не выполнится.
          */
-        $this->nonce = base64_encode(random_bytes(12));
+        $nonce = base64_encode(random_bytes(12));
+        $this->app->setNonce($nonce);
 
         if (!headers_sent()) {
             header(
                 "Content-Security-Policy: default-src 'self'; "
-                . "script-src 'self' 'nonce-" . $this->nonce . "'; "
+                . "script-src 'self' 'nonce-" . $nonce . "'; "
                 . "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data:; "
                 . "font-src 'self' https://fonts.gstatic.com; connect-src 'self'; form-action 'self'; "
                 . "frame-ancestors 'self'; base-uri 'self'; object-src 'none'"
@@ -67,14 +72,14 @@ final class Admin
         }
 
         $path = trim((string) parse_url($requestUri, PHP_URL_PATH), '/');
-        $path = trim(substr($path, strlen(trim($this->base, '/'))), '/');
+        $path = trim(substr($path, strlen(trim($this->app->base(), '/'))), '/');
 
         // Первый сегмент: pages, menu, leads… — им и подсвечиваем навигацию
-        $this->section = explode('/', $path)[0] ?? '';
+        $this->app->setSection(explode('/', $path)[0] ?? '');
 
         // Без базы админка бессмысленна — показываем, что именно не так
-        if (!$this->db->isAvailable()) {
-            $this->render('connection', ['configured' => $this->db->isConfigured()], 'Нет связи с базой');
+        if (!$this->app->db->isAvailable()) {
+            $this->app->render('connection', ['configured' => $this->app->db->isConfigured()], 'Нет связи с базой');
 
             return;
         }
@@ -91,15 +96,15 @@ final class Admin
          * если между сбросом и записью правки кто-то успел положить в кэш
          * ещё не изменённую страницу.
          */
-        if ($this->isPost() && $this->cache !== null) {
-            $cache = $this->cache;
+        if ($this->app->isPost() && $this->app->cache !== null) {
+            $cache = $this->app->cache;
             $cache->flush();
             register_shutdown_function(static fn () => $cache->flush());
         }
 
         // Схема ещё не создана или обновилась — предлагаем применить миграции
-        if ($this->migrator->pending() !== [] && $path !== 'migrate') {
-            $this->render('migrate', ['pending' => $this->migrator->pending()], 'Обновление базы');
+        if ($this->app->migrator->pending() !== [] && $path !== 'migrate') {
+            $this->app->render('migrate', ['pending' => $this->app->migrator->pending()], 'Обновление базы');
 
             return;
         }
@@ -107,7 +112,7 @@ final class Admin
         // Применение миграций идёт раньше всех обращений к таблицам:
         // при первом запуске их ещё не существует
         if ($path === 'migrate') {
-            $this->migrate();
+            $this->system()->migrate();
 
             return;
         }
@@ -116,2419 +121,163 @@ final class Admin
          * Язык интерфейса берём у пользователя. До входа — язык сайта:
          * страницу входа тоже надо кому-то читать.
          */
-        AdminLang::use($this->auth->user()['locale'] ?? '' ?: $this->site->defaultLocale());
+        AdminLang::use($this->app->auth->user()['locale'] ?? '' ?: $this->app->site->defaultLocale());
 
         // Первый запуск: заводим администратора
-        if (!$this->auth->hasUsers()) {
-            $path === 'setup' ? $this->setup() : $this->redirect('setup');
+        if (!$this->app->auth->hasUsers()) {
+            $path === 'setup' ? $this->access()->setup() : $this->app->redirect('setup');
 
             return;
         }
 
         if ($path === 'login') {
-            $this->login();
+            $this->access()->login();
 
             return;
         }
 
         // Восстановление пароля открыто без входа — за тем и заведено
         if ($path === 'vosstanovlenie') {
-            $this->passwordReset();
+            $this->access()->passwordReset();
 
             return;
         }
 
-        if (!$this->auth->check()) {
-            $this->redirect('login');
+        if (!$this->app->auth->check()) {
+            $this->app->redirect('login');
 
             return;
         }
 
+        $this->route($path);
+    }
+
+    /**
+     * Разбор адреса для вошедшего.
+     *
+     * Разделы с продолжением в адресе (page/12/ru/block/5) разбирают хвост
+     * сами: правила там свои, и знать их снаружи незачем.
+     */
+    private function route(string $path): void
+    {
         $segments = $path === '' ? [] : explode('/', $path);
+        $head = $segments[0] ?? '';
+        $tail = array_slice($segments, 1);
 
-        // Редактор страницы: page/{id}/{locale}/...
-        if (($segments[0] ?? '') === 'page') {
-            $this->pageRoutes(array_slice($segments, 1));
+        switch ($head) {
+            case 'page':
+                $this->pages()->pageRoutes($tail);
 
-            return;
-        }
+                return;
 
-        // Медиатека: media, media/upload, media/{id}/delete
-        if (($segments[0] ?? '') === 'media') {
-            $this->mediaRoutes(array_slice($segments, 1));
+            case 'media':
+                $this->media()->mediaRoutes($tail);
 
-            return;
-        }
+                return;
 
-        // Редактор меню: menu, menu/{язык}/{меню}/...
-        if (($segments[0] ?? '') === 'menu') {
-            $this->menuRoutes(array_slice($segments, 1));
+            case 'menu':
+                $this->menu()->menuRoutes($tail);
 
-            return;
-        }
+                return;
 
-        // Заявки: leads, leads/{id}/{действие}, leads/telegram
-        if (($segments[0] ?? '') === 'leads') {
-            $this->leadRoutes(array_slice($segments, 1));
+            case 'leads':
+                $this->leads()->leadRoutes($tail);
 
-            return;
-        }
+                return;
 
-        // Пользователи: users, users/{id}/{действие}
-        if (($segments[0] ?? '') === 'users') {
-            $this->adminOnly() ? $this->userRoutes(array_slice($segments, 1)) : null;
+            case 'users':
+                $this->app->adminOnly() ? $this->users()->userRoutes($tail) : null;
 
-            return;
-        }
+                return;
 
-        // Оформление: themes, themes/{id}, themes/add, themes/{id}/delete
-        if (($segments[0] ?? '') === 'themes') {
-            $this->adminOnly() ? $this->themeRoutes(array_slice($segments, 1)) : null;
+            case 'themes':
+                $this->app->adminOnly() ? $this->themes()->themeRoutes($tail) : null;
 
-            return;
+                return;
         }
 
         match ($path) {
-            ''         => $this->dashboard(),
-            'pages'    => $this->pagesList(),
-            'profile'  => $this->profile(),
-            'twofa'    => $this->twoFactor(),
-            'lang'     => $this->switchLanguage(),
-            'settings' => $this->siteSettings(),
-            'seo'      => $this->adminOnly() ? $this->seoSettings() : null,
-            'system'   => $this->adminOnly() ? $this->system() : null,
-            'import'   => $this->adminOnly() ? $this->import() : null,
-            'backup'   => $this->adminOnly() ? $this->backup() : null,
-            'cache'    => $this->adminOnly() ? $this->cacheFlush() : null,
-            'log'      => $this->adminOnly() ? $this->activityLog() : null,
-            'inline'   => $this->inlineSave(),
-            'logout'   => $this->logout(),
-            'setup'    => $this->redirect(''),
-            default    => $this->notFound(),
+            ''         => $this->system()->dashboard(),
+            'pages'    => $this->pages()->pagesList(),
+            'profile'  => $this->access()->profile(),
+            'twofa'    => $this->access()->twoFactor(),
+            'lang'     => $this->access()->switchLanguage(),
+            'settings' => $this->system()->siteSettings(),
+            'seo'      => $this->app->adminOnly() ? $this->seo()->seoSettings() : null,
+            'system'   => $this->app->adminOnly() ? $this->system()->system() : null,
+            'import'   => $this->app->adminOnly() ? $this->system()->import() : null,
+            'backup'   => $this->app->adminOnly() ? $this->system()->backup() : null,
+            'cache'    => $this->app->adminOnly() ? $this->system()->cacheFlush() : null,
+            'log'      => $this->app->adminOnly() ? $this->system()->activityLog() : null,
+            'inline'   => $this->inline()->inlineSave(),
+            'logout'   => $this->access()->logout(),
+            'setup'    => $this->app->redirect(''),
+            default    => $this->app->notFound(),
         };
     }
 
+    /* ------------------------------------------------------------- разделы */
+
     /**
-     * Правка текста прямо на странице сайта.
+     * Раздел создаётся при первом обращении: за запрос работает один,
+     * остальным незачем даже появляться.
      *
-     * Принимает идентификатор блока, путь к полю (`items.0.title`) и новое
-     * значение. Значение не записывается как есть: данные блока собираются
-     * заново и проходят через ту же проверку, что и форма в админке, —
-     * правил на два входа не бывает.
+     * @template T of AdminSection
+     * @param class-string<T> $class
+     * @return T
      */
-    private function inlineSave(): void
+    private function part(string $class): AdminSection
     {
-        if (!$this->isPost()) {
-            $this->json(['error' => at('Ожидался POST.')], 405);
-
-            return;
-        }
-
-        $path = trim((string) ($_POST['path'] ?? ''));
-        $value = (string) ($_POST['value'] ?? '');
-
-        // Правка на странице приходит из четырёх мест сразу: блок, пункт
-        // меню, строка интерфейса и поле самой страницы
-        if (!empty($_POST['nav'])) {
-            $this->inlineSaveNav((int) $_POST['nav'], $path, $value);
-
-            return;
-        }
-
-        if (!empty($_POST['text'])) {
-            $this->inlineSaveText((string) $_POST['text'], $path, $value);
-
-            return;
-        }
-
-        if (!empty($_POST['setting'])) {
-            $this->inlineSaveSetting((string) $_POST['setting'], $value);
-
-            return;
-        }
-
-        if (!empty($_POST['page'])) {
-            $this->inlineSavePage((int) $_POST['page'], $path, $value);
-
-            return;
-        }
-
-        $block = $this->pages->findBlock((int) ($_POST['block'] ?? 0));
-
-        if ($block === null || $path === '') {
-            $this->json(['error' => at('Блок не найден.')], 404);
-
-            return;
-        }
-
-        $data = $block['data'];
-
-        if (!self::setByPath($data, explode('.', $path), $value)) {
-            $this->json(['error' => at('Такого поля в блоке нет.')], 422);
-
-            return;
-        }
-
-        [$clean, $errors] = Blocks::sanitize((string) $block['type'], $data);
-
-        if ($errors !== []) {
-            $this->json(['error' => reset($errors)], 422);
-
-            return;
-        }
-
-        // Снимок и здесь: правка на странице отменяется той же кнопкой
-        $this->pages->snapshot(
-            (int) $block['page_id'],
-            (string) $block['locale'],
-            $this->auth->user()['id'] ?? null,
-            'правка на странице: ' . Blocks::title((string) $block['type'])
-        );
-
-        $this->pages->updateBlock((int) $block['id'], $clean);
-        $this->auth->log('inline_edit', $block['type'] . '#' . $block['id'], $path);
-
-        // Правка идёт мимо dispatch-обработчика POST, кэш сбрасываем сами
-        $this->cache?->flush();
-
-        $this->json(['ok' => true, 'value' => self::byPath($clean, explode('.', $path))]);
-    }
-
-    /** Правка пункта меню прямо на странице. */
-    private function inlineSaveNav(int $id, string $field, string $value): void
-    {
-        $nav = new NavigationRepository($this->db);
-        $item = $nav->find($id);
-
-        if ($item === null || !in_array($field, ['title', 'full_title', 'footer_title'], true)) {
-            $this->json(['error' => at('Пункт меню не найден.')], 404);
-
-            return;
-        }
-
-        $value = trim(strip_tags($value));
-
-        if ($value === '') {
-            $this->json(['error' => at('Название не может быть пустым.')], 422);
-
-            return;
-        }
-
-        $nav->update($id, [
-            'parent_id'    => $item['parent_id'],
-            'title'        => $field === 'title' ? $value : (string) $item['title'],
-            'full_title'   => $field === 'full_title' ? $value : (string) $item['full_title'],
-            'footer_title' => $field === 'footer_title' ? $value : (string) ($item['footer_title'] ?? ''),
-            'url'          => (string) $item['url'],
-            'in_drawer'    => (bool) $item['in_drawer'],
-            'in_footer'    => (bool) ($item['in_footer'] ?? 1),
-        ]);
-
-        $this->auth->log('inline_edit_menu', (string) $item['menu_key'], $field);
-        $this->cache?->flush();
-
-        $this->json(['ok' => true, 'value' => $value]);
-    }
-
-    /** Правка строки интерфейса: подписи в подвале, шапке, боковом меню. */
-    private function inlineSaveText(string $key, string $locale, string $value): void
-    {
-        if (!isset($this->site->locales()[$locale])) {
-            $this->json(['error' => at('Неизвестный язык.')], 422);
-
-            return;
-        }
-
-        $settings = new Settings($this->db, (array) $this->config['contacts']);
-        $settings->setText($key, $locale, Blocks::cleanHtml($value));
-
-        $this->auth->log('inline_edit_text', $key, $locale);
-        $this->cache?->flush();
-
-        $this->json(['ok' => true, 'value' => $value]);
-    }
-
-    /** Правка настройки сайта: телефон, почта, режим работы. */
-    private function inlineSaveSetting(string $key, string $value): void
-    {
-        if (!isset(Settings::FIELDS[$key])) {
-            $this->json(['error' => at('Такой настройки нет.')], 422);
-
-            return;
-        }
-
-        /*
-         * На странице правятся только контакты — то, что там и видно.
-         * Остальные настройки (токен бота, счётчики, SEO) в админке закрыты
-         * администратором, и эта дверь не должна их открывать: иначе редактор
-         * одним запросом уводит уведомления о заявках в свой чат.
-         */
-        $group = (string) (Settings::FIELDS[$key]['group'] ?? '');
-
-        if ($group !== 'contacts' && !$this->auth->isAdmin()) {
-            $this->json(['error' => at('Эту настройку меняет только администратор.')], 403);
-
-            return;
-        }
-
-        $settings = new Settings($this->db, (array) $this->config['contacts']);
-        $settings->save([$key => trim(strip_tags($value))]);
-
-        $this->auth->log('inline_edit_setting', $key);
-        $this->cache?->flush();
-
-        $this->json(['ok' => true, 'value' => $value]);
-    }
-
-    /**
-     * Правка полей самой страницы — сейчас это тексты плавающей панели внизу.
-     * Они лежат в языковой версии, а не в блоках.
-     */
-    private function inlineSavePage(int $pageId, string $field, string $value): void
-    {
-        $locale = $this->site->locale();
-        $row = $this->pages->locale($pageId, $locale);
-
-        if ($row === null || !str_starts_with($field, 'bar.')) {
-            $this->json(['error' => at('Такого поля у страницы нет.')], 422);
-
-            return;
-        }
-
-        $key = substr($field, 4);
-
-        if (!in_array($key, ['title', 'subtitle', 'label', 'message'], true)) {
-            $this->json(['error' => at('Такого поля у панели нет.')], 422);
-
-            return;
-        }
-
-        $bar = json_decode((string) ($row['bar_json'] ?? ''), true);
-        $bar = is_array($bar) ? $bar : [];
-        $bar[$key] = trim(strip_tags($value));
-
-        $this->pages->snapshot($pageId, $locale, $this->auth->user()['id'] ?? null, 'правка панели внизу');
-
-        $this->pages->saveLocale($pageId, $locale, [
-            'slug'        => (string) $row['slug'],
-            'title'       => (string) $row['title'],
-            'description' => (string) ($row['description'] ?? ''),
-            'og_image'    => (string) ($row['og_image'] ?? ''),
-            'noindex'     => !empty($row['noindex']),
-            'canonical'   => (string) ($row['canonical'] ?? ''),
-            'bar'         => array_filter($bar, static fn (string $v): bool => $v !== ''),
-        ]);
-
-        $this->auth->log('inline_edit_bar', (string) $row['slug'], $key);
-        $this->cache?->flush();
-
-        $this->json(['ok' => true, 'value' => $bar[$key]]);
-    }
-
-    /**
-     * Записывает значение по пути внутри данных блока.
-     * Новых ключей не создаёт: править можно только то, что уже выводится.
-     */
-    private static function setByPath(array &$data, array $path, string $value): bool
-    {
-        $key = array_shift($path);
-
-        if ($key === null || !array_key_exists($key, $data)) {
-            return false;
-        }
-
-        if ($path === []) {
-            if (is_array($data[$key])) {
-                return false;
-            }
-
-            $data[$key] = $value;
-
-            return true;
-        }
-
-        if (!is_array($data[$key])) {
-            return false;
-        }
-
-        return self::setByPath($data[$key], $path, $value);
-    }
-
-    private static function byPath(array $data, array $path): mixed
-    {
-        foreach ($path as $key) {
-            if (!is_array($data) || !array_key_exists($key, $data)) {
-                return null;
-            }
-
-            $data = $data[$key];
-        }
-
-        return $data;
-    }
-
-    /**
-     * Разделы, меняющие устройство сайта, доступны только администратору.
-     * Редактор работает с контентом, но не переносит данные и не трогает схему.
-     */
-    private function adminOnly(): bool
-    {
-        if ($this->auth->isAdmin()) {
-            return true;
-        }
-
-        $this->flash(at('Раздел доступен только администратору.'));
-        $this->redirect('');
-
-        return false;
-    }
-
-    /** Разбор адресов внутри редактора страницы. */
-    private function pageRoutes(array $segments): void
-    {
-        $pageId = (int) ($segments[0] ?? 0);
-        $locale = (string) ($segments[1] ?? $this->site->defaultLocale());
-
-        $page = $this->pages->find($pageId);
-
-        if ($page === null || !isset($this->site->locales()[$locale])) {
-            $this->notFound();
-
-            return;
-        }
-
-        $this->site->setLocale($locale);
-
-        $action = $segments[2] ?? '';
-
-        // Действия над отдельным блоком: block/{id}/{что делаем}
-        if ($action === 'block') {
-            $this->blockRoutes($page, $locale, array_slice($segments, 3));
-
-            return;
-        }
-
-        match ($action) {
-            ''          => $this->pageEditor($page, $locale),
-            'settings'  => $this->pageSettings($page, $locale),
-            'add'       => $this->blockAdd($page, $locale),
-            'reorder'   => $this->blocksReorder($page, $locale),
-            'publish'   => $this->pagePublish($page, $locale),
-            'unpublish' => $this->pageUnpublish($page, $locale),
-            'copy'      => $this->pageCopyBlocks($page, $locale),
-            'undo'      => $this->pageUndo($page, $locale),
-            default     => $this->notFound(),
-        };
-    }
-
-    private function blockRoutes(array $page, string $locale, array $segments): void
-    {
-        $blockId = (int) ($segments[0] ?? 0);
-        $block = $this->pages->findBlock($blockId);
-
-        if ($block === null || (int) $block['page_id'] !== (int) $page['id'] || $block['locale'] !== $locale) {
-            $this->notFound();
-
-            return;
-        }
-
-        match ($segments[1] ?? '') {
-            ''          => $this->blockForm($page, $locale, $block),
-            'delete'    => $this->blockDelete($page, $locale, $block),
-            'toggle'    => $this->blockToggle($page, $locale, $block),
-            'duplicate' => $this->blockDuplicate($page, $locale, $block),
-            default     => $this->notFound(),
-        };
-    }
-
-    /* ------------------------------------------------------------ действия */
-
-    private function setup(): void
-    {
-        $errors = [];
-
-        if ($this->isPost()) {
-            $email = trim((string) ($_POST['email'] ?? ''));
-            $password = (string) ($_POST['password'] ?? '');
-            $name = trim((string) ($_POST['name'] ?? ''));
-
-            if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-                $errors['email'] = at('Укажите корректный адрес почты.');
-            }
-
-            if (mb_strlen($password) < 10) {
-                $errors['password'] = at('Пароль должен быть не короче 10 символов.');
-            }
-
-            if ($password !== (string) ($_POST['password_confirm'] ?? '')) {
-                $errors['password_confirm'] = at('Пароли не совпадают.');
-            }
-
-            if ($errors === []) {
-                $id = $this->auth->createUser($email, $password, $name !== '' ? $name : 'Администратор', 'admin');
-                $this->auth->login($this->db->first('SELECT * FROM users WHERE id = :id', ['id' => $id]));
-                $this->auth->log('setup', $email);
-                $this->redirect('');
-
-                return;
-            }
-        }
-
-        $this->render('setup', ['errors' => $errors, 'input' => $_POST], 'Первый запуск');
-    }
-
-    private function login(): void
-    {
-        if ($this->auth->check()) {
-            $this->redirect('');
-
-            return;
-        }
-
-        $error = null;
-
-        // Пароль уже принят — остался одноразовый код
-        if ($this->auth->awaitingCode()) {
-            if ($this->isPost()) {
-                $error = $this->auth->attemptCode((string) ($_POST['code'] ?? ''));
-
-                if ($error === null) {
-                    $this->redirect('');
-
-                    return;
-                }
-            }
-
-            $this->render('login-code', ['error' => $error], 'Подтверждение входа');
-
-            return;
-        }
-
-        if ($this->isPost()) {
-            $error = $this->auth->attempt(
-                trim((string) ($_POST['email'] ?? '')),
-                (string) ($_POST['password'] ?? '')
-            );
-
-            if ($error === null) {
-                // Со включённым вторым шагом сессии ещё нет — покажем форму кода
-                $this->redirect($this->auth->awaitingCode() ? 'login' : '');
-
-                return;
-            }
-        }
-
-        $this->render('login', ['error' => $error, 'email' => $_POST['email'] ?? ''], 'Вход');
-    }
-
-    /**
-     * Восстановление пароля через телеграм.
-     *
-     * Код уходит в тот же чат, куда падают заявки: почтой на shared-хостинге
-     * пользоваться ненадёжно — письма уходят в спам или не уходят вовсе,
-     * а телеграм у владельца сайта уже настроен и проверен.
-     *
-     * Форма одна, в два шага: сначала почта, потом код и новый пароль.
-     * О том, заведена ли такая почта, форма не рассказывает.
-     */
-    private function passwordReset(): void
-    {
-        if ($this->auth->check()) {
-            $this->redirect('');
-
-            return;
-        }
-
-        $step = ($_POST['step'] ?? $_GET['step'] ?? 'email') === 'code' ? 'code' : 'email';
-        $email = trim((string) ($_POST['email'] ?? ''));
-        $error = null;
-        $sent = false;
-
-        if ($this->isPost() && $step === 'email') {
-            if ($this->auth->resetRequestedTooOften()) {
-                $error = at('Код уже запрашивали несколько раз. Попробуйте через час.');
-            } else {
-                $started = $this->auth->startPasswordReset($email);
-
-                /*
-                 * Ответ одинаковый и когда почта есть, и когда её нет:
-                 * иначе форма превращается в способ узнать, кто здесь заведён.
-                 */
-                if ($started !== null) {
-                    $this->sendResetCode((string) $started['code'], (array) $started['user']);
-                }
-
-                $sent = true;
-                $step = 'code';
-            }
-        }
-
-        if ($this->isPost() && $step === 'code' && ($_POST['step'] ?? '') === 'code') {
-            $error = $this->auth->finishPasswordReset(
-                $email,
-                (string) ($_POST['code'] ?? ''),
-                (string) ($_POST['password'] ?? ''),
-                (string) ($_POST['password_confirm'] ?? '')
-            );
-
-            if ($error === null) {
-                $this->flash(at('Пароль изменён — войдите с новым.'));
-                $this->redirect('login');
-
-                return;
-            }
-        }
-
-        $this->render('password-reset', [
-            'step'  => $step,
-            'email' => $email,
-            'error' => $error,
-            'sent'  => $sent,
-        ], 'Восстановление пароля');
-    }
-
-    /** Код восстановления уходит в телеграм — тем же путём, что и заявки. */
-    private function sendResetCode(string $code, array $user): void
-    {
-        $settings = new Settings($this->db, (array) $this->config['contacts']);
-        $leads = new Leads($this->db, $settings, (array) ($this->config['trusted_proxies'] ?? []));
-
-        $text = "<b>Восстановление пароля KULAGER</b>\n\n"
-            . 'Кому: ' . htmlspecialchars((string) ($user['email'] ?? ''), ENT_NOQUOTES, 'UTF-8') . "\n"
-            . 'Код: <code>' . $code . "</code>\n"
-            . "Годен 15 минут.\n\n"
-            . 'Если пароль никто не восстанавливал — просто не вводите код '
-            . 'и смените его сами в разделе «Профиль».';
-
-        $leads->send($text);
-    }
-
-    private function logout(): void
-    {
-        $this->auth->log('logout');
-        $this->auth->logout();
-        $this->redirect('login');
-    }
-
-    private function migrate(): void
-    {
-        // При первом запуске пользователей ещё нет — тогда миграции открыты,
-        // иначе схему меняет только администратор
-        if ($this->auth->hasUsers() && !$this->auth->isAdmin()) {
-            $this->flash(at('Обновление базы доступно только администратору.'));
-            $this->redirect('');
-
-            return;
-        }
-
-        if ($this->isPost()) {
-            $applied = $this->migrator->migrate();
-            $this->flash(at('Применено миграций: %d.', count($applied)));
-            $this->redirect('');
-
-            return;
-        }
-
-        $this->render('migrate', ['pending' => $this->migrator->pending()], 'Обновление базы');
-    }
-
-    /** Контакты и адреса — то, что меняется без разработчика. */
-    private function siteSettings(): void
-    {
-        $settings = new Settings($this->db, (array) $this->config['contacts']);
-
-        if ($this->isPost()) {
-            $values = [];
-
-            foreach (array_keys(Settings::group('contacts')) as $key) {
-                $values[$key] = (string) ($_POST[$key] ?? '');
-            }
-
-            $settings->save($values);
-            $this->auth->log('settings');
-            $this->flash(at('Настройки сохранены.'));
-            $this->redirect('settings');
-
-            return;
-        }
-
-        $this->render('settings', [
-            'fields'   => Settings::group('contacts'),
-            'values'   => $settings->all(),
-            'defaults' => (array) $this->config['contacts'],
-        ], 'Настройки');
-    }
-
-    /** Профиль: пока только смена собственного пароля. */
-    private function profile(): void
-    {
-        $errors = [];
-
-        if ($this->isPost()) {
-            $current = (string) ($_POST['current'] ?? '');
-            $next = (string) ($_POST['password'] ?? '');
-
-            if (!password_verify($current, (string) $this->auth->user()['password_hash'])) {
-                $errors['current'] = at('Текущий пароль указан неверно.');
-            }
-
-            if (mb_strlen($next) < 10) {
-                $errors['password'] = at('Новый пароль должен быть не короче 10 символов.');
-            }
-
-            if ($next !== (string) ($_POST['password_confirm'] ?? '')) {
-                $errors['password_confirm'] = at('Пароли не совпадают.');
-            }
-
-            if ($errors === []) {
-                $this->db->update(
-                    'users',
-                    ['password_hash' => password_hash($next, PASSWORD_DEFAULT)],
-                    'id = :id',
-                    ['id' => $this->auth->user()['id']]
-                );
-
-                $this->auth->log('password_change');
-                $this->flash(at('Пароль изменён.'));
-                $this->redirect('profile');
-
-                return;
-            }
-        }
-
-        $user = $this->auth->user() ?? [];
-
-        $this->render('profile', [
-            'errors' => $errors,
-            'secret' => (string) ($_SESSION['totp_new_secret'] ?? ''),
-            'codes'  => (array) ($_SESSION['totp_new_codes'] ?? []),
-        ], 'Профиль');
-
-        // Секрет и запасные коды показываем ровно один раз
-        unset($_SESSION['totp_new_secret'], $_SESSION['totp_new_codes']);
-    }
-
-    /**
-     * Включение и отключение входа по одноразовому коду.
-     *
-     * Секрет заводится сразу, но второй шаг включается только после того,
-     * как редактор введёт код из приложения: иначе легко запереть себя,
-     * сохранив секрет, который никуда не переписан.
-     */
-    private function twoFactor(): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('profile');
-
-            return;
-        }
-
-        $user = $this->auth->user() ?? [];
-        $id = (int) ($user['id'] ?? 0);
-        $action = (string) ($_POST['action'] ?? '');
-
-        if ($action === 'start') {
-            $secret = Totp::secret();
-            $this->db->update('users', ['totp_secret' => $secret, 'totp_enabled' => 0], 'id = :id', ['id' => $id]);
-
-            $_SESSION['totp_new_secret'] = $secret;
-            $this->flash(at('Добавьте ключ в приложение и введите код, чтобы включить.'));
-            $this->redirect('profile');
-
-            return;
-        }
-
-        if ($action === 'enable') {
-            $secret = (string) ($user['totp_secret'] ?? '');
-
-            if ($secret === '' || !Totp::verify($secret, (string) ($_POST['code'] ?? ''))) {
-                $this->flash(at('Код не подошёл — вход по коду не включён.'));
-                $this->redirect('profile');
-
-                return;
-            }
-
-            $this->db->update('users', ['totp_enabled' => 1], 'id = :id', ['id' => $id]);
-            $_SESSION['totp_new_codes'] = $this->auth->makeBackupCodes($id);
-
-            $this->auth->log('twofa_enabled');
-            $this->flash(at('Вход по одноразовому коду включён. Сохраните запасные коды.'));
-            $this->redirect('profile');
-
-            return;
-        }
-
-        if ($action === 'disable') {
-            // Отключение — тоже действие с последствиями, просим пароль
-            if (!password_verify((string) ($_POST['current'] ?? ''), (string) $user['password_hash'])) {
-                $this->flash(at('Текущий пароль указан неверно — ничего не изменилось.'));
-                $this->redirect('profile');
-
-                return;
-            }
-
-            $this->db->update(
-                'users',
-                ['totp_enabled' => 0, 'totp_secret' => '', 'totp_backup' => null],
-                'id = :id',
-                ['id' => $id]
-            );
-
-            $this->auth->log('twofa_disabled');
-            $this->flash(at('Вход по одноразовому коду отключён.'));
-            $this->redirect('profile');
-
-            return;
-        }
-
-        if ($action === 'codes') {
-            $_SESSION['totp_new_codes'] = $this->auth->makeBackupCodes($id);
-            $this->auth->log('twofa_codes');
-            $this->flash(at('Запасные коды перевыпущены — прежние больше не действуют.'));
-            $this->redirect('profile');
-
-            return;
-        }
-
-        $this->redirect('profile');
-    }
-
-    private function dashboard(): void
-    {
-        $stats = [
-            'pages'     => (int) $this->db->value('SELECT COUNT(*) FROM pages', [], 0),
-            'published' => (int) $this->db->value('SELECT COUNT(*) FROM page_locales WHERE is_published = 1', [], 0),
-            'blocks'    => (int) $this->db->value('SELECT COUNT(*) FROM page_blocks', [], 0),
-            'media'     => (int) $this->db->value('SELECT COUNT(*) FROM media', [], 0),
-        ];
-
-        $this->render('dashboard', [
-            'stats'  => $stats,
-            'recent' => $this->db->all(
-                'SELECT a.*, u.name AS user_name FROM activity_log a
-                   LEFT JOIN users u ON u.id = a.user_id
-                  ORDER BY a.created_at DESC LIMIT 10'
-            ),
-        ], 'Панель');
-    }
-
-    private function pagesList(): void
-    {
-        $this->render('pages', [
-            'pages'   => $this->pages->listPages(),
-            'locales' => $this->site->locales(),
-        ], 'Страницы');
-    }
-
-    private function import(): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('system');
-
-            return;
-        }
-
-        require APP_DIR . '/src/ContentImporter.php';
-
-        $importer = new ContentImporter($this->db, $this->site, $this->pages);
-        $result = $importer->run();
-
-        // Меню переносим тем же действием: иначе после переноса контента
-        // редактор увидит страницы в базе, а меню — по-прежнему из файлов
-        $nav = new NavigationRepository($this->db);
-        $menuItems = $nav->importFromFiles(array_keys($this->site->locales()));
-
-        $this->auth->log('import', '', json_encode($result, JSON_UNESCAPED_UNICODE));
-
-        $this->flash(at(
-            'Перенесено страниц: %d, блоков: %d, пунктов меню: %d.',
-            $result['pages'],
-            $result['blocks'],
-            $menuItems
-        ));
-
-        // Поля, которых нет в реестре блоков, — их не покажет редактор,
-        // хотя на сайте они выводятся. Сигнал дополнить реестр.
-        if ($result['unknown'] !== []) {
-            $this->flash(at('Не описаны в реестре блоков: %s', implode(', ', $result['unknown'])));
-        }
-
-        $this->redirect('pages');
-    }
-
-    /** Выгрузка копии: база и загруженные файлы. */
-    private function backup(): void
-    {
-        require APP_DIR . '/src/Backup.php';
-
-        if (!$this->isPost()) {
-            $this->redirect('system');
-
-            return;
-        }
-
-        $this->auth->log('backup');
-
-        // Никакого вывода до файла: заголовки уже уйдут вместе с архивом
-        (new Backup($this->db))->send();
-        exit;
-    }
-
-    private function activityLog(): void
-    {
-        $page = max(1, (int) ($_GET['p'] ?? 1));
-        $perPage = 50;
-
-        $this->render('log', [
-            'rows' => $this->db->all(
-                'SELECT a.*, u.name AS user_name, u.email AS user_email
-                   FROM activity_log a
-                   LEFT JOIN users u ON u.id = a.user_id
-                  ORDER BY a.created_at DESC, a.id DESC
-                  LIMIT ' . $perPage . ' OFFSET ' . (($page - 1) * $perPage)
-            ),
-            'page'  => $page,
-            'total' => (int) $this->db->value('SELECT COUNT(*) FROM activity_log', [], 0),
-            'perPage' => $perPage,
-        ], 'Журнал действий');
-    }
-
-    private function system(): void
-    {
-        $uploads = PUBLIC_DIR . '/assets/uploads';
-
-        $this->render('system', [
-            'php'        => PHP_VERSION,
-            'extensions' => [
-                'pdo_mysql' => extension_loaded('pdo_mysql'),
-                'gd'        => extension_loaded('gd'),
-                'fileinfo'  => extension_loaded('fileinfo'),
-                'mbstring'  => extension_loaded('mbstring'),
-            ],
-            'limits' => [
-                'upload_max_filesize' => ini_get('upload_max_filesize'),
-                'post_max_size'       => ini_get('post_max_size'),
-                'memory_limit'        => ini_get('memory_limit'),
-                'max_execution_time'  => ini_get('max_execution_time'),
-            ],
-            'writable' => [
-                'app/logs'       => is_writable(APP_DIR . '/logs'),
-                'app/cache'      => is_dir(APP_DIR . '/cache') ? is_writable(APP_DIR . '/cache') : null,
-                'assets/uploads' => is_dir($uploads) ? is_writable($uploads) : null,
-            ],
-            'cachedPages' => count(glob(APP_DIR . '/cache/v*/*.html') ?: []),
-            'migrations' => [
-                'applied' => $this->migrator->applied(),
-                'pending' => $this->migrator->pending(),
-            ],
-            'contentFiles' => $this->contentFilesCount(),
-            'canZip'       => class_exists('ZipArchive'),
-            'security'     => $this->securityOverview(),
-        ], 'Состояние');
-    }
-
-    /* ------------------------------------------------------------ медиатека */
-
-    /* -------------------------------------------------------------- заявки */
-
-    private function leadRoutes(array $segments): void
-    {
-        $leads = new Leads($this->db, new Settings($this->db, (array) $this->config['contacts']),
-            (array) ($this->config['trusted_proxies'] ?? []));
-        $head = (string) ($segments[0] ?? '');
-
-        if ($head === '') {
-            $this->leadList($leads);
-
-            return;
-        }
-
-        // Настройка уведомлений — дело администратора
-        if (in_array($head, ['telegram', 'detect', 'test'], true)) {
-            if (!$this->adminOnly()) {
-                return;
-            }
-
-            match ($head) {
-                'telegram' => $this->leadTelegram(),
-                'detect'   => $this->leadDetectChat(),
-                'test'     => $this->leadTestMessage($leads),
-            };
-
-            return;
-        }
-
-        $id = (int) $head;
-
-        match ($segments[1] ?? '') {
-            'status' => $this->leadStatus($leads, $id),
-            'delete' => $this->leadDelete($leads, $id),
-            'resend' => $this->leadResend($leads, $id),
-            default  => $this->notFound(),
-        };
-    }
-
-    private function leadList(Leads $leads): void
-    {
-        $status = (string) ($_GET['status'] ?? '');
-
-        $this->render('leads', [
-            'leads'    => $leads->recent($status),
-            'status'   => $status,
-            'counts'   => [
-                'new'     => (int) $this->db->value("SELECT COUNT(*) FROM leads WHERE status = 'new'", [], 0),
-                'in_work' => (int) $this->db->value("SELECT COUNT(*) FROM leads WHERE status = 'in_work'", [], 0),
-                'done'    => (int) $this->db->value("SELECT COUNT(*) FROM leads WHERE status = 'done'", [], 0),
-                'spam'    => (int) $this->db->value("SELECT COUNT(*) FROM leads WHERE status = 'spam'", [], 0),
-            ],
-            'telegram' => [
-                'token' => trim((string) $this->settingsValue('telegram_token')) !== '',
-                'chat'  => trim((string) $this->settingsValue('telegram_chat')),
-            ],
-            'isAdmin' => $this->auth->isAdmin(),
-        ], 'Заявки');
-    }
-
-    private function settingsValue(string $key): string
-    {
-        return (new Settings($this->db, (array) $this->config['contacts']))->get($key, '');
-    }
-
-    private function leadStatus(Leads $leads, int $id): void
-    {
-        if ($this->isPost()) {
-            $leads->setStatus($id, (string) ($_POST['status'] ?? ''));
-            $this->auth->log('lead_status', (string) $id, (string) ($_POST['status'] ?? ''));
-        }
-
-        $this->redirect('leads');
-    }
-
-    private function leadDelete(Leads $leads, int $id): void
-    {
-        if ($this->isPost()) {
-            $leads->delete($id);
-            $this->auth->log('lead_delete', (string) $id);
-            $this->flash(at('Заявка удалена.'));
-        }
-
-        $this->redirect('leads');
-    }
-
-    /** Повторная отправка в телеграм — когда бот был не настроен или лежал. */
-    private function leadResend(Leads $leads, int $id): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('leads');
-
-            return;
-        }
-
-        $lead = $this->db->first('SELECT * FROM leads WHERE id = :id', ['id' => $id]);
-
-        if ($lead === null) {
-            $this->redirect('leads');
-
-            return;
-        }
-
-        $text = "<b>Заявка с сайта KULAGER</b>\n\n"
-            . 'Имя: ' . htmlspecialchars((string) $lead['name'], ENT_NOQUOTES, 'UTF-8') . "\n"
-            . ($lead['phone'] !== '' ? 'Телефон: ' . htmlspecialchars((string) $lead['phone'], ENT_NOQUOTES, 'UTF-8') . "\n" : '')
-            . ($lead['email'] !== '' ? 'Почта: ' . htmlspecialchars((string) $lead['email'], ENT_NOQUOTES, 'UTF-8') . "\n" : '')
-            . ($lead['message'] !== '' ? "\n" . htmlspecialchars((string) $lead['message'], ENT_NOQUOTES, 'UTF-8') . "\n" : '')
-            . "\nСтраница: /" . htmlspecialchars((string) $lead['page'], ENT_NOQUOTES, 'UTF-8');
-
-        $error = $leads->send($text);
-
-        $this->db->update('leads', [
-            'notified'     => $error === null ? 1 : 0,
-            'notify_error' => mb_substr((string) $error, 0, 255),
-        ], 'id = :id', ['id' => $id]);
-
-        $this->flash($error === null ? at('Отправлено в телеграм.') : at('Не отправилось: %s', $error));
-        $this->redirect('leads');
-    }
-
-    private function leadTelegram(): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('leads');
-
-            return;
-        }
-
-        $settings = new Settings($this->db, (array) $this->config['contacts']);
-
-        $settings->save([
-            'telegram_token' => (string) ($_POST['telegram_token'] ?? ''),
-            'telegram_chat'  => (string) ($_POST['telegram_chat'] ?? ''),
-        ]);
-
-        $this->auth->log('lead_telegram_settings');
-        $this->flash(at('Настройки бота сохранены.'));
-        $this->redirect('leads');
-    }
-
-    /**
-     * Определяет чат по последнему сообщению боту: так не приходится искать
-     * идентификатор вручную — достаточно написать боту «/start».
-     */
-    private function leadDetectChat(): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('leads');
-
-            return;
-        }
-
-        $settings = new Settings($this->db, (array) $this->config['contacts']);
-        $token = trim($settings->get('telegram_token', ''));
-
-        if ($token === '') {
-            $this->flash(at('Сначала сохраните токен бота.'));
-            $this->redirect('leads');
-
-            return;
-        }
-
-        $leads = new Leads($this->db, $settings, (array) ($this->config['trusted_proxies'] ?? []));
-        $response = $leads->ask('https://api.telegram.org/bot' . $token . '/getUpdates');
-
-        $data = is_string($response) ? json_decode($response, true) : null;
-
-        if (!is_array($data) || empty($data['ok'])) {
-            $this->flash(at('Телеграм не ответил: %s', (string) ($data['description'] ?? at('нет связи'))));
-            $this->redirect('leads');
-
-            return;
-        }
-
-        $chat = null;
-
-        foreach (array_reverse((array) $data['result']) as $update) {
-            $message = $update['message'] ?? $update['channel_post'] ?? null;
-
-            if (is_array($message) && isset($message['chat']['id'])) {
-                $chat = (string) $message['chat']['id'];
-                break;
-            }
-        }
-
-        if ($chat === null) {
-            $this->flash(at('Не нашли ни одного сообщения. Напишите боту «/start» и повторите.'));
-            $this->redirect('leads');
-
-            return;
-        }
-
-        $settings->save(['telegram_chat' => $chat]);
-        $this->auth->log('lead_telegram_chat', $chat);
-        $this->flash(at('Чат определён: %s', $chat));
-        $this->redirect('leads');
-    }
-
-    private function leadTestMessage(Leads $leads): void
-    {
-        if ($this->isPost()) {
-            $error = $leads->send("<b>Проверка связи</b>\nЕсли вы видите это сообщение, заявки будут приходить сюда.");
-
-            $this->flash($error === null ? at('Сообщение ушло — проверьте телеграм.') : at('Не отправилось: %s', $error));
-        }
-
-        $this->redirect('leads');
-    }
-
-    /* -------------------------------------------------------- пользователи */
-
-    /** Разбор адресов раздела пользователей. */
-    private function userRoutes(array $segments): void
-    {
-        $head = (string) ($segments[0] ?? '');
-
-        if ($head === '') {
-            $this->userList();
-
-            return;
-        }
-
-        if ($head === 'add') {
-            $this->userAdd();
-
-            return;
-        }
-
-        $user = $this->db->first('SELECT * FROM users WHERE id = :id', ['id' => (int) $head]);
-
-        if ($user === null) {
-            $this->notFound();
-
-            return;
-        }
-
-        match ($segments[1] ?? '') {
-            'role'     => $this->userRole($user),
-            'password' => $this->userPassword($user),
-            'toggle'   => $this->userToggle($user),
-            'twofa'    => $this->userDropTwoFactor($user),
-            'delete'   => $this->userDelete($user),
-            default    => $this->notFound(),
-        };
-    }
-
-    private function userList(): void
-    {
-        $this->render('users', [
-            'users'   => $this->db->all('SELECT * FROM users ORDER BY role, email'),
-            'me'      => (int) ($this->auth->user()['id'] ?? 0),
-            'created' => (array) ($_SESSION['new_user'] ?? []),
-        ], 'Пользователи');
-
-        // Пароль нового пользователя показываем ровно один раз
-        unset($_SESSION['new_user']);
-    }
-
-    private function userAdd(): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('users');
-
-            return;
-        }
-
-        $email = trim((string) ($_POST['email'] ?? ''));
-        $name = trim((string) ($_POST['name'] ?? ''));
-        $role = ($_POST['role'] ?? 'editor') === 'admin' ? 'admin' : 'editor';
-
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $this->flash(at('Укажите корректный адрес почты.'));
-            $this->redirect('users');
-
-            return;
-        }
-
-        if ($this->db->first('SELECT id FROM users WHERE email = :email', ['email' => $email]) !== null) {
-            $this->flash(at('Пользователь с такой почтой уже заведён.'));
-            $this->redirect('users');
-
-            return;
-        }
-
-        // Пароль придумываем сами: так он заведомо стойкий, а передать его
-        // человеку всё равно придётся отдельным каналом
-        $password = $this->newPassword();
-
-        $id = $this->auth->createUser($email, $password, $name !== '' ? $name : $email, $role);
-
-        $this->db->update(
-            'users',
-            ['created_by' => (int) ($this->auth->user()['id'] ?? 0), 'password_set_at' => date('Y-m-d H:i:s')],
-            'id = :id',
-            ['id' => $id]
-        );
-
-        $_SESSION['new_user'] = ['email' => $email, 'password' => $password];
-
-        $this->auth->log('user_add', $email, $role);
-        $this->flash(at('Пользователь заведён. Передайте пароль лично — второй раз он не покажется.'));
-        $this->redirect('users');
-    }
-
-    private function userRole(array $user): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('users');
-
-            return;
-        }
-
-        $role = ($_POST['role'] ?? 'editor') === 'admin' ? 'admin' : 'editor';
-
-        // Последнего администратора не понижаем: иначе управлять станет некому
-        if ($role !== 'admin' && $user['role'] === 'admin' && $this->adminCount() <= 1) {
-            $this->flash(at('Это единственный администратор — роль оставлена прежней.'));
-            $this->redirect('users');
-
-            return;
-        }
-
-        $this->db->update('users', ['role' => $role], 'id = :id', ['id' => $user['id']]);
-        $this->auth->log('user_role', (string) $user['email'], $role);
-        $this->flash(at('Роль изменена.'));
-        $this->redirect('users');
-    }
-
-    private function userPassword(array $user): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('users');
-
-            return;
-        }
-
-        $password = $this->newPassword();
-
-        $this->db->update(
-            'users',
-            [
-                'password_hash'   => password_hash($password, PASSWORD_DEFAULT),
-                'password_set_at' => date('Y-m-d H:i:s'),
-            ],
-            'id = :id',
-            ['id' => $user['id']]
-        );
-
-        $_SESSION['new_user'] = ['email' => $user['email'], 'password' => $password];
-
-        $this->auth->log('user_password_reset', (string) $user['email']);
-        $this->flash(at('Пароль сброшен. Передайте новый лично — второй раз он не покажется.'));
-        $this->redirect('users');
-    }
-
-    private function userToggle(array $user): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('users');
-
-            return;
-        }
-
-        $active = empty($user['is_active']);
-
-        if (!$active && $user['role'] === 'admin' && $this->adminCount() <= 1) {
-            $this->flash(at('Это единственный администратор — доступ оставлен.'));
-            $this->redirect('users');
-
-            return;
-        }
-
-        if (!$active && (int) $user['id'] === (int) ($this->auth->user()['id'] ?? 0)) {
-            $this->flash(at('Себе доступ закрыть нельзя.'));
-            $this->redirect('users');
-
-            return;
-        }
-
-        $this->db->update('users', ['is_active' => $active ? 1 : 0], 'id = :id', ['id' => $user['id']]);
-        $this->auth->log($active ? 'user_enable' : 'user_disable', (string) $user['email']);
-        $this->flash($active ? at('Доступ открыт.') : at('Доступ закрыт.'));
-        $this->redirect('users');
-    }
-
-    /** Сброс второго шага: человек потерял телефон и не может войти сам. */
-    private function userDropTwoFactor(array $user): void
-    {
-        if ($this->isPost()) {
-            $this->db->update(
-                'users',
-                ['totp_enabled' => 0, 'totp_secret' => '', 'totp_backup' => null],
-                'id = :id',
-                ['id' => $user['id']]
-            );
-
-            $this->auth->log('user_twofa_reset', (string) $user['email']);
-            $this->flash(at('Вход по коду отключён — пусть настроит заново в своём профиле.'));
-        }
-
-        $this->redirect('users');
-    }
-
-    private function userDelete(array $user): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('users');
-
-            return;
-        }
-
-        if ((int) $user['id'] === (int) ($this->auth->user()['id'] ?? 0)) {
-            $this->flash(at('Себя удалить нельзя.'));
-            $this->redirect('users');
-
-            return;
-        }
-
-        if ($user['role'] === 'admin' && $this->adminCount() <= 1) {
-            $this->flash(at('Это единственный администратор — удалять его нельзя.'));
-            $this->redirect('users');
-
-            return;
-        }
-
-        $this->db->delete('users', 'id = :id', ['id' => $user['id']]);
-        $this->auth->log('user_delete', (string) $user['email']);
-        $this->flash(at('Пользователь удалён. Его записи в журнале остались.'));
-        $this->redirect('users');
-    }
-
-    private function adminCount(): int
-    {
-        return (int) $this->db->value("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = 1", [], 0);
-    }
-
-    /**
-     * Пароль, который не придётся придумывать: три группы по пять знаков.
-     *
-     * Раньше он собирался из словаря на шестнадцать слов — читался легко,
-     * но и перебирался за четыре миллиона вариантов, а словарь лежит в этом
-     * же файле на виду. Здесь набор из 32 знаков на 15 позиций: столько
-     * вариантов не переберёт никто, а списать с листка всё ещё можно —
-     * похожие друг на друга знаки (0, O, 1, l, I) из набора убраны.
-     */
-    private function newPassword(): string
-    {
-        $alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
-        $max = strlen($alphabet) - 1;
-        $parts = [];
-
-        for ($group = 0; $group < 3; $group++) {
-            $chunk = '';
-
-            for ($i = 0; $i < 5; $i++) {
-                $chunk .= $alphabet[random_int(0, $max)];
-            }
-
-            $parts[] = $chunk;
-        }
-
-        return implode('-', $parts);
-    }
-
-    /* ---------------------------------------------------------------- SEO */
-
-    /**
-     * Общие настройки для поисковиков: название сайта, приписка к заголовку,
-     * описание и картинка по умолчанию, robots.txt, подтверждение прав.
-     */
-    private function seoSettings(): void
-    {
-        $settings = new Settings($this->db, (array) $this->config['contacts']);
-
-        // Счётчики правятся на этой же странице: они про ту же аналитику
-        $fields = Settings::group('seo') + Settings::group('counters');
-
-        if ($this->isPost()) {
-            $values = [];
-
-            /*
-             * На странице две формы — общие настройки и счётчики. Сохраняем
-             * только то, что пришло: иначе одна форма затирала бы поля другой.
-             */
-            foreach ($fields as $key => $field) {
-                if (($field['type'] ?? '') === 'bool') {
-                    // Флажок не приходит вовсе, когда снят, — смотрим на соседнее скрытое поле
-                    if (array_key_exists($key, $_POST)) {
-                        $values[$key] = empty($_POST[$key]) ? '' : '1';
-                    }
-
-                    continue;
-                }
-
-                if (array_key_exists($key, $_POST)) {
-                    $values[$key] = (string) $_POST[$key];
-                }
-            }
-
-            $settings->save($values);
-            $this->auth->log('seo_settings');
-            $this->flash(at('Настройки SEO сохранены.'));
-            $this->redirect('seo');
-
-            return;
-        }
-
-        FormBuilder::usePages($this->pages->catalog($this->site->defaultLocale()));
-
-        $this->render('seo', [
-            'fields'   => Settings::group('seo'),
-            'counters' => Settings::group('counters'),
-            'values'  => $settings->all(),
-            'pages'   => $this->seoOverview(),
-            'locales' => $this->site->locales(),
-        ], 'SEO');
-    }
-
-    /**
-     * Сводка по страницам: где не заполнено описание, где слишком длинный
-     * заголовок, что закрыто от индексации. Проверять руками шесть десятков
-     * страниц никто не станет.
-     */
-    private function seoOverview(): array
-    {
-        $rows = $this->db->all(
-            'SELECT l.*, p.page_key
-               FROM page_locales l
-               JOIN pages p ON p.id = l.page_id
-              ORDER BY l.locale, l.slug'
-        );
-
-        $out = [];
-
-        foreach ($rows as $row) {
-            $title = (string) $row['title'];
-            $description = (string) ($row['description'] ?? '');
-            $issues = [];
-
-            if (trim($title) === '') {
-                $issues[] = 'нет заголовка';
-            } elseif (mb_strlen($title) > 70) {
-                $issues[] = 'заголовок длиннее 70 знаков';
-            }
-
-            if (trim($description) === '') {
-                $issues[] = 'нет описания';
-            } elseif (mb_strlen($description) > 200) {
-                $issues[] = 'описание длиннее 200 знаков';
-            }
-
-            if (!empty($row['noindex'])) {
-                $issues[] = 'закрыта от индексации';
-            }
-
-            if (!$row['is_published']) {
-                $issues[] = 'черновик';
-            }
-
-            $out[] = [
-                'page_id'     => (int) $row['page_id'],
-                'locale'      => (string) $row['locale'],
-                'slug'        => (string) $row['slug'],
-                'title'       => $title,
-                'title_len'   => mb_strlen($title),
-                'description' => $description,
-                'desc_len'    => mb_strlen($description),
-                'issues'      => $issues,
-            ];
-        }
-
-        return $out;
-    }
-
-    /* --------------------------------------------------------- оформление */
-
-    /** Разбор адресов раздела тем. */
-    private function themeRoutes(array $segments): void
-    {
-        $themes = new ThemeRepository($this->db, new Settings($this->db, (array) $this->config['contacts']));
-
-        // При первом заходе переносим темы из файла: иначе править нечего
-        $themes->importBuiltin();
-
-        $head = (string) ($segments[0] ?? '');
-
-        if ($head === '') {
-            $this->themeList($themes);
-
-            return;
-        }
-
-        if ($head === 'add') {
-            $this->themeAdd($themes);
-
-            return;
-        }
-
-        if ($head === 'default') {
-            $this->themeDefault($themes);
-
-            return;
-        }
-
-        $theme = $themes->find((int) $head);
-
-        if ($theme === null) {
-            $this->notFound();
-
-            return;
-        }
-
-        match ($segments[1] ?? '') {
-            ''       => $this->themeForm($themes, $theme),
-            'delete' => $this->themeDelete($themes, $theme),
-            default  => $this->notFound(),
-        };
-    }
-
-    private function themeList(ThemeRepository $themes): void
-    {
-        $this->render('themes', [
-            'themes'  => $themes->rows(),
-            'current' => $themes->defaultKey((string) $this->site->config('default_theme', 'dark')),
-        ], 'Оформление');
-    }
-
-    private function themeForm(ThemeRepository $themes, array $theme): void
-    {
-        if ($this->isPost()) {
-            $vars = [];
-
-            foreach (array_keys(ThemeRepository::VARS) as $key) {
-                // Значение уходит в <style> на каждой странице — чистим на входе
-                $value = ThemeRepository::cleanValue((string) ($_POST['vars'][$key] ?? ''));
-
-                if ($value !== '') {
-                    $vars[$key] = $value;
-                }
-            }
-
-            $themes->save(
-                (int) $theme['id'],
-                mb_substr(trim(strip_tags((string) ($_POST['name'] ?? $theme['name']))), 0, 60),
-                $vars,
-                [
-                    trim((string) ($_POST['swatch_bg'] ?? '')),
-                    trim((string) ($_POST['swatch_accent'] ?? '')),
-                ]
-            );
-
-            $this->auth->log('theme_save', (string) $theme['theme_key']);
-            $this->flash(at('Тема сохранена.'));
-            $this->redirect('themes/' . $theme['id']);
-
-            return;
-        }
-
-        $vars = json_decode((string) $theme['vars_json'], true);
-
-        $this->render('theme-edit', [
-            'theme'  => $theme,
-            'vars'   => is_array($vars) ? $vars : [],
-            'fields' => ThemeRepository::VARS,
-        ], (string) $theme['name']);
-    }
-
-    private function themeAdd(ThemeRepository $themes): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('themes');
-
-            return;
-        }
-
-        $name = trim((string) ($_POST['name'] ?? ''));
-        $source = trim((string) ($_POST['source'] ?? 'dark'));
-
-        if ($name === '') {
-            $this->flash(at('Укажите название темы.'));
-            $this->redirect('themes');
-
-            return;
-        }
-
-        $id = $themes->duplicate($source, $name);
-
-        if ($id === null) {
-            $this->flash(at('Не нашли тему, с которой копировать.'));
-            $this->redirect('themes');
-
-            return;
-        }
-
-        $this->auth->log('theme_add', $name);
-        $this->flash(at('Тема создана — поправьте цвета.'));
-        $this->redirect('themes/' . $id);
-    }
-
-    private function themeDefault(ThemeRepository $themes): void
-    {
-        if ($this->isPost()) {
-            $key = trim((string) ($_POST['theme_key'] ?? ''));
-
-            if ($themes->exists($key)) {
-                $themes->setDefault($key);
-                $this->auth->log('theme_default', $key);
-                $this->flash(at('Тема по умолчанию изменена.'));
-            }
-        }
-
-        $this->redirect('themes');
-    }
-
-    private function themeDelete(ThemeRepository $themes, array $theme): void
-    {
-        if ($this->isPost()) {
-            $themes->delete((int) $theme['id'])
-                ? $this->flash(at('Тема удалена.'))
-                : $this->flash(at('Встроенную тему удалить нельзя.'));
-
-            $this->auth->log('theme_delete', (string) $theme['theme_key']);
-        }
-
-        $this->redirect('themes');
-    }
-
-    /**
-     * Снимок языковой версии перед изменением: к нему вернёт «Отменить».
-     * Снимки чистятся сами, храним последние пятнадцать на версию.
-     */
-    private function keepUndo(array $page, string $locale, string $comment): void
-    {
-        $this->pages->snapshot((int) $page['id'], $locale, $this->auth->user()['id'] ?? null, $comment);
-    }
-
-    /** Переключение языка админки — хранится у пользователя. */
-    private function switchLanguage(): void
-    {
-        if ($this->isPost()) {
-            $locale = (string) ($_POST['locale'] ?? '');
-
-            if (isset($this->site->locales()[$locale])) {
-                $this->db->update(
-                    'users',
-                    ['locale' => $locale],
-                    'id = :id',
-                    ['id' => $this->auth->user()['id'] ?? 0]
-                );
-            }
-        }
-
-        $this->redirect((string) ($_POST['back'] ?? ''));
-    }
-
-    /** Возврат языковой версии к состоянию до последнего изменения. */
-    private function pageUndo(array $page, string $locale): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $revision = $this->pages->lastRevision((int) $page['id'], $locale);
-
-        if ($revision === null) {
-            $this->flash(at('Отменять нечего: правок пока не было.'));
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $this->pages->restoreRevision((int) $revision['id'])
-            ? $this->flash(at('Отменено: %s.', $revision['comment'] ?: at('последнее изменение')))
-            : $this->flash(at('Не удалось отменить — снимок повреждён.'));
-
-        $this->auth->log('page_undo', $page['page_key'] . ' ' . $locale, (string) $revision['comment']);
-        $this->redirect('page/' . $page['id'] . '/' . $locale);
-    }
-
-    /* -------------------------------------------------------------- меню */
-
-    /** Разбор адресов редактора меню: menu/{язык}/{меню}/{действие}. */
-    private function menuRoutes(array $segments): void
-    {
-        $nav = new NavigationRepository($this->db);
-        $locale = (string) ($segments[0] ?? $this->site->defaultLocale());
-
-        if (!isset($this->site->locales()[$locale])) {
-            $this->notFound();
-
-            return;
-        }
-
-        $menu = (string) ($segments[1] ?? '');
-
-        if ($menu === '') {
-            $this->menuList($nav, $locale);
-
-            return;
-        }
-
-        if (!isset(NavigationRepository::MENUS[$menu])) {
-            $this->notFound();
-
-            return;
-        }
-
-        match ($segments[2] ?? '') {
-            ''        => $this->menuEditor($nav, $locale, $menu),
-            'add'     => $this->menuAdd($nav, $locale, $menu),
-            'save'    => $this->menuSave($nav, $locale, $menu),
-            'delete'  => $this->menuDelete($nav, $locale, $menu),
-            'reorder' => $this->menuReorder($nav, $locale, $menu),
-            default   => $this->notFound(),
-        };
-    }
-
-    private function menuList(NavigationRepository $nav, string $locale): void
-    {
-        $counts = [];
-
-        foreach (array_keys(NavigationRepository::MENUS) as $menu) {
-            $counts[$menu] = count($nav->items($menu, $locale));
-        }
-
-        $this->render('menu', [
-            'locale'   => $locale,
-            'locales'  => $this->site->locales(),
-            'menus'    => NavigationRepository::MENUS,
-            'counts'   => $counts,
-            'imported' => $nav->hasItems(),
-        ], 'Меню');
-    }
-
-    private function menuEditor(NavigationRepository $nav, string $locale, string $menu): void
-    {
-        FormBuilder::usePages($this->pages->catalog($locale));
-
-        $this->render('menu-edit', [
-            'locale'  => $locale,
-            'locales' => $this->site->locales(),
-            'menu'    => $menu,
-            'title'   => NavigationRepository::MENUS[$menu],
-            'items'   => $nav->items($menu, $locale),
-            'grouped' => $menu === 'industries',
-        ], NavigationRepository::MENUS[$menu]);
-    }
-
-    private function menuAdd(NavigationRepository $nav, string $locale, string $menu): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('menu/' . $locale . '/' . $menu);
-
-            return;
-        }
-
-        $parent = (int) ($_POST['parent_id'] ?? 0);
-
-        $nav->add($menu, $locale, [
-            'parent_id' => $parent > 0 ? $parent : null,
-            'title'     => trim((string) ($_POST['title'] ?? 'Новый пункт')),
-            'url'       => trim((string) ($_POST['url'] ?? '')),
-            'in_drawer' => true,
-        ]);
-
-        $this->auth->log('menu_add', $menu . '/' . $locale);
-        $this->redirect('menu/' . $locale . '/' . $menu);
-    }
-
-    private function menuSave(NavigationRepository $nav, string $locale, string $menu): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('menu/' . $locale . '/' . $menu);
-
-            return;
-        }
-
-        foreach ((array) ($_POST['items'] ?? []) as $id => $values) {
-            $item = $nav->find((int) $id);
-
-            // Правим только пункты этого меню и языка: id приходит из формы
-            if ($item === null || $item['menu_key'] !== $menu || $item['locale'] !== $locale) {
-                continue;
-            }
-
-            $nav->update((int) $id, [
-                'parent_id'    => $item['parent_id'],
-                'title'        => trim((string) ($values['title'] ?? '')),
-                'full_title'   => trim((string) ($values['full_title'] ?? '')),
-                'footer_title' => trim((string) ($values['footer_title'] ?? '')),
-                'url'          => trim((string) ($values['url'] ?? '')),
-                'in_drawer'    => !empty($values['in_drawer']),
-                'in_footer'    => !empty($values['in_footer']),
-            ]);
-        }
-
-        $this->auth->log('menu_save', $menu . '/' . $locale);
-        $this->flash(at('Меню сохранено.'));
-        $this->redirect('menu/' . $locale . '/' . $menu);
-    }
-
-    private function menuDelete(NavigationRepository $nav, string $locale, string $menu): void
-    {
-        $id = (int) ($_POST['id'] ?? 0);
-        $item = $nav->find($id);
-
-        if ($this->isPost() && $item !== null && $item['menu_key'] === $menu && $item['locale'] === $locale) {
-            $nav->delete($id);
-            $this->auth->log('menu_delete', $menu . '/' . $locale);
-            $this->flash(at('Пункт удалён.'));
-        }
-
-        $this->redirect('menu/' . $locale . '/' . $menu);
-    }
-
-    private function menuReorder(NavigationRepository $nav, string $locale, string $menu): void
-    {
-        $order = array_map('intval', (array) ($_POST['order'] ?? []));
-        $allowed = array_column($nav->items($menu, $locale), 'id');
-
-        // Порядок принимаем только для пунктов этого меню
-        $order = array_values(array_filter($order, static fn (int $id): bool => in_array($id, array_map('intval', $allowed), true)));
-
-        if ($order !== []) {
-            $nav->reorder($order);
-        }
-
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode(['ok' => true]);
-    }
-
-    /** Ручной сброс кэша: на случай правки в базе мимо админки. */
-    private function cacheFlush(): void
-    {
-        if ($this->isPost()) {
-            // Кэш уже сброшен общим обработчиком POST, здесь только сообщение
-            $this->flash(at('Кэш страниц сброшен.'));
-        }
-
-        $this->redirect('system');
-    }
-
-    private function mediaRoutes(array $segments): void
-    {
-        $library = new MediaLibrary($this->db);
-
-        // media/{id}/delete и media/{id}/alt
-        if (ctype_digit((string) ($segments[0] ?? ''))) {
-            $item = $library->find((int) $segments[0]);
-
-            if ($item === null) {
-                $this->notFound();
-
-                return;
-            }
-
-            match ($segments[1] ?? '') {
-                'delete' => $this->mediaDelete($library, $item),
-                'alt'    => $this->mediaAlt($library, $item),
-                default  => $this->notFound(),
-            };
-
-            return;
-        }
-
-        match ($segments[0] ?? '') {
-            ''       => $this->mediaList($library),
-            'upload' => $this->mediaUpload($library),
-            'json'   => $this->mediaJson($library),
-            default  => $this->notFound(),
-        };
-    }
-
-    /** Список файлов для окна выбора картинки. */
-    /**
-     * Что сейчас со входом в админку: по этим строкам видно, где тонко.
-     * Проверки читают состояние и ничего не меняют.
-     */
-    private function securityOverview(): array
-    {
-        $https = ($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off'
-            || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
-
-        $users = $this->db->all('SELECT email, role, totp_enabled, last_login_at FROM users ORDER BY id');
-        $withTwoFa = count(array_filter($users, static fn (array $u): bool => !empty($u['totp_enabled'])));
-
-        $failed = (int) $this->db->value(
-            'SELECT COUNT(*) FROM activity_log WHERE action IN (:failed, :blocked) AND created_at > :since',
-            [
-                'failed'  => 'login_failed',
-                'blocked' => 'login_blocked',
-                'since'   => date('Y-m-d H:i:s', time() - 86400),
-            ],
-            0
-        );
-
-        return [
-            'https'      => $https,
-            'users'      => $users,
-            'two_factor' => $withTwoFa,
-            'failed'     => $failed,
-            'debug'      => !empty($this->config['debug']),
-        ];
-    }
-
-    private function mediaJson(MediaLibrary $library): void
-    {
-        $items = [];
-
-        foreach ($library->all(500) as $item) {
-            $items[] = [
-                'id'     => (int) $item['id'],
-                'path'   => (string) $item['path'],
-                'name'   => basename((string) $item['path']),
-                'alt'    => (string) $item['alt_ru'],
-                'width'  => (int) $item['width'],
-                'height' => (int) $item['height'],
-            ];
-        }
-
-        $this->json(['items' => $items, 'writable' => $library->isWritable()]);
-    }
-
-    private function json(array $data, int $status = 200): void
-    {
-        http_response_code($status);
-        header('Content-Type: application/json; charset=utf-8');
-        echo json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
-    }
-
-    private function mediaList(MediaLibrary $library): void
-    {
-        $this->render('media', [
-            'items'    => $library->all(),
-            'writable' => $library->isWritable(),
-            'gd'       => extension_loaded('gd'),
-            'limit'    => ini_get('upload_max_filesize'),
-        ], 'Медиатека');
-    }
-
-    private function mediaUpload(MediaLibrary $library): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('media');
-
-            return;
-        }
-
-        $uploaded = 0;
-        $errors = [];
-        $added = [];
-
-        // Файлы приходят пачкой: раскладываем массив $_FILES по одному
-        $files = $_FILES['files'] ?? null;
-
-        foreach ((array) ($files['name'] ?? []) as $index => $name) {
-            [$item, $error] = $library->upload([
-                'name'     => $name,
-                'tmp_name' => $files['tmp_name'][$index] ?? '',
-                'error'    => $files['error'][$index] ?? UPLOAD_ERR_NO_FILE,
-                'size'     => $files['size'][$index] ?? 0,
-            ]);
-
-            if ($item !== null) {
-                $uploaded++;
-                $added[] = [
-                    'path' => (string) $item['path'],
-                    'name' => basename((string) $item['path']),
-                ];
-                continue;
-            }
-
-            if ($error !== null) {
-                $errors[] = $name . ': ' . $error;
-            }
-        }
-
-        if ($uploaded > 0) {
-            $this->auth->log('media_upload', (string) $uploaded);
-        }
-
-        // Загрузка из окна выбора картинки: страница не перезагружается,
-        // поэтому отвечаем списком добавленных файлов
-        if (($_POST['json'] ?? '') === '1') {
-            $this->json(['uploaded' => $added, 'errors' => $errors]);
-
-            return;
-        }
-
-        if ($uploaded > 0) {
-            $this->flash(at('Загружено файлов: %d.', $uploaded));
-        }
-
-        foreach (array_slice($errors, 0, 5) as $message) {
-            $this->flash($message);
-        }
-
-        $this->redirect('media');
-    }
-
-    private function mediaAlt(MediaLibrary $library, array $item): void
-    {
-        if ($this->isPost()) {
-            $library->updateAlt(
-                (int) $item['id'],
-                (string) ($_POST['alt_ru'] ?? ''),
-                (string) ($_POST['alt_kk'] ?? '')
-            );
-            $this->flash(at('Описание сохранено.'));
-        }
-
-        $this->redirect('media');
-    }
-
-    private function mediaDelete(MediaLibrary $library, array $item): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('media');
-
-            return;
-        }
-
-        // Файл может использоваться на страницах — предупреждаем, но не запрещаем
-        $used = (int) $this->db->value(
-            'SELECT COUNT(*) FROM page_blocks WHERE data_json LIKE :needle',
-            ['needle' => '%' . $item['path'] . '%'],
-            0
-        );
-
-        $library->delete((int) $item['id']);
-        $this->auth->log('media_delete', (string) $item['path']);
-
-        $this->flash($used > 0
-            ? at('Файл удалён, но он использовался в блоках (%d) — проверьте страницы.', $used)
-            : at('Файл удалён.'));
-
-        $this->redirect('media');
-    }
-
-    /* ----------------------------------------------------- редактор страницы */
-
-    private function pageEditor(array $page, string $locale): void
-    {
-        $localeRow = $this->pages->locale((int) $page['id'], $locale);
-        $isDefault = $locale === $this->site->defaultLocale();
-
-        $this->render('page', [
-            'page'         => $page,
-            'locale'       => $locale,
-            'localeRow'    => $localeRow,
-            'blocks'       => $this->pages->blocks((int) $page['id'], $locale, true),
-            'library'      => Blocks::grouped(),
-            'otherLocales' => $this->otherLocales($locale),
-            'isDefault'    => $isDefault,
-            'baseLocale'   => $this->site->defaultLocale(),
-            'baseBlocks'   => $isDefault
-                ? 0
-                : count($this->pages->blocks((int) $page['id'], $this->site->defaultLocale(), true)),
-            'translation'  => $this->pages->translationStats((int) $page['id'], $locale),
-            'undo'         => $this->pages->lastRevision((int) $page['id'], $locale),
-        ], $localeRow['title'] ?? $page['page_key']);
-    }
-
-    /** Копирование блоков основного языка в текущий — заготовка для перевода. */
-    private function pageCopyBlocks(array $page, string $locale): void
-    {
-        if (!$this->isPost() || $locale === $this->site->defaultLocale()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $base = $this->site->defaultLocale();
-
-        // Копирование затирает перевод целиком — снимок обязателен
-        $this->keepUndo($page, $locale, 'копирование блоков из основного языка');
-
-        $copied = $this->pages->copyBlocks((int) $page['id'], $base, $locale);
-
-        // Языковой версии могло не быть вовсе — создаём её вместе с блоками
-        if ($this->pages->locale((int) $page['id'], $locale) === null) {
-            $baseRow = $this->pages->locale((int) $page['id'], $base) ?? [];
-
-            $this->pages->saveLocale((int) $page['id'], $locale, [
-                'slug'        => (string) ($baseRow['slug'] ?? ''),
-                'title'       => (string) ($baseRow['title'] ?? ''),
-                'description' => (string) ($baseRow['description'] ?? ''),
-                'og_image'    => (string) ($baseRow['og_image'] ?? ''),
-                'is_published' => false,
-            ]);
-        }
-
-        $this->auth->log('copy_blocks', $page['page_key'] . ' ' . $base . '→' . $locale);
-        $this->flash($copied > 0
-            ? at('Скопировано блоков: %d. Теперь замените текст на перевод.', $copied)
-            : at('В основной версии нет блоков для копирования.'));
-
-        $this->redirect('page/' . $page['id'] . '/' . $locale);
-    }
-
-    private function pageSettings(array $page, string $locale): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $bar = array_filter([
-            'title'    => trim((string) ($_POST['bar_title'] ?? '')),
-            'subtitle' => trim((string) ($_POST['bar_subtitle'] ?? '')),
-            'label'    => trim((string) ($_POST['bar_label'] ?? '')),
-            'message'  => trim((string) ($_POST['bar_message'] ?? '')),
-        ], static fn (string $v): bool => $v !== '');
-
-        $title = trim((string) ($_POST['title'] ?? ''));
-        $current = (string) ($this->pages->locale((int) $page['id'], $locale)['slug'] ?? '');
-        $slug = Slug::make((string) ($_POST['slug'] ?? ''));
-
-        /*
-         * Адрес пустой — либо это главная (у неё он пустой и должен таким
-         * остаться), либо поле просто не заполнили: тогда собираем его
-         * из заголовка, сохраняя вложенность.
-         */
-        if ($slug === '' && $current !== '') {
-            $slug = Slug::fromTitle($title, $current);
-        }
-
-        if ($this->pages->slugTaken($slug, $locale, (int) $page['id'])) {
-            $this->flash(at('Адрес «/%s» уже занят другой страницей — настройки не сохранены.', $slug));
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $this->keepUndo($page, $locale, 'настройки страницы');
-
-        $this->pages->saveLocale((int) $page['id'], $locale, [
-            'slug'        => $slug,
-            'title'       => $title,
-            'description' => trim((string) ($_POST['description'] ?? '')),
-            'og_image'    => trim((string) ($_POST['og_image'] ?? '')),
-            'noindex'     => !empty($_POST['noindex']),
-            'canonical'   => Slug::make((string) ($_POST['canonical'] ?? '')),
-            'bar'         => $bar !== [] ? $bar : null,
-        ]);
-
-        $this->flash(at('Настройки страницы сохранены.'));
-        $this->redirect('page/' . $page['id'] . '/' . $locale);
-    }
-
-    private function blockForm(array $page, string $locale, array $block): void
-    {
-        $definition = Blocks::definition($block['type']);
-
-        if ($definition === null) {
-            $this->notFound();
-
-            return;
-        }
-
-        $errors = [];
-        $data = $block['data'];
-
-        if ($this->isPost()) {
-            [$clean, $errors] = Blocks::sanitize($block['type'], (array) ($_POST['data'] ?? []));
-
-            if ($errors === []) {
-                $this->keepUndo($page, $locale, 'правка блока «' . Blocks::title($block['type']) . '»');
-                $this->pages->updateBlock((int) $block['id'], $clean);
-                $this->flash(at('Блок «%s» сохранён.', at(Blocks::title($block['type']))));
-                $this->redirect('page/' . $page['id'] . '/' . $locale . '#block-' . $block['id']);
-
-                return;
-            }
-
-            // При ошибке показываем то, что ввёл редактор, а не старое значение
-            $data = $clean;
-        }
-
-        // Ссылки в блоке выбираются из страниц того же языка
-        FormBuilder::usePages($this->pages->catalog($locale));
-
-        $this->render('block', [
-            'page'       => $page,
-            'locale'     => $locale,
-            'block'      => $block,
-            'definition' => $definition,
-            'data'       => $data,
-            'errors'     => $errors,
-        ], Blocks::title($block['type']));
-    }
-
-    private function blockAdd(array $page, string $locale): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $type = (string) ($_POST['type'] ?? '');
-
-        if (!Blocks::exists($type)) {
-            $this->flash(at('Неизвестный тип блока.'));
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $id = $this->pages->addBlock((int) $page['id'], $locale, $type, Blocks::defaults($type));
-
-        $this->redirect('page/' . $page['id'] . '/' . $locale . '/block/' . $id);
-    }
-
-    private function blockDelete(array $page, string $locale, array $block): void
-    {
-        // Только POST: по GET токен не проверяется, и картинка с таким
-        // адресом на чужой странице удалила бы блок руками вошедшего
-        if (!$this->isPost()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $this->keepUndo($page, $locale, 'удаление блока «' . Blocks::title($block['type']) . '»');
-        $this->pages->deleteBlock((int) $block['id']);
-        $this->flash(at('Блок «%s» удалён.', at(Blocks::title($block['type']))));
-        $this->redirect('page/' . $page['id'] . '/' . $locale);
-    }
-
-    private function blockToggle(array $page, string $locale, array $block): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $this->pages->setBlockVisible((int) $block['id'], !$block['is_visible']);
-        $this->redirect('page/' . $page['id'] . '/' . $locale . '#block-' . $block['id']);
-    }
-
-    private function blockDuplicate(array $page, string $locale, array $block): void
-    {
-        if (!$this->isPost()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $id = $this->pages->addBlock(
-            (int) $page['id'],
-            $locale,
-            $block['type'],
-            $block['data'],
-            (int) $block['sort'] + 5
-        );
-
-        $this->flash(at('Блок скопирован.'));
-        $this->redirect('page/' . $page['id'] . '/' . $locale . '#block-' . $id);
-    }
-
-    /** Новый порядок блоков. Отвечает JSON: вызывается перетаскиванием. */
-    private function blocksReorder(array $page, string $locale): void
-    {
-        header('Content-Type: application/json; charset=utf-8');
-
-        if (!$this->isPost()) {
-            echo json_encode(['ok' => false]);
-
-            return;
-        }
-
-        $order = array_map('intval', (array) ($_POST['order'] ?? []));
-
-        // Переставляем только блоки этой страницы и этого языка
-        $allowed = array_column(
-            $this->db->all(
-                'SELECT id FROM page_blocks WHERE page_id = :id AND locale = :locale',
-                ['id' => $page['id'], 'locale' => $locale]
-            ),
-            'id'
-        );
-
-        $order = array_values(array_intersect($order, array_map('intval', $allowed)));
-
-        $this->pages->reorderBlocks($order);
-
-        echo json_encode(['ok' => true, 'count' => count($order)]);
+        return $this->sections[$class] ??= new $class($this->app);
     }
 
-    private function pagePublish(array $page, string $locale): void
+    private function access(): AdminAccess
     {
-        if (!$this->isPost()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $this->pages->publish((int) $page['id'], $locale, (int) ($this->auth->user()['id'] ?? 0) ?: null);
-        $this->auth->log('publish', $page['page_key'] . ' / ' . $locale);
-
-        $this->flash(at('Страница опубликована.'));
-        $this->redirect('page/' . $page['id'] . '/' . $locale);
+        return $this->part(AdminAccess::class);
     }
 
-    private function pageUnpublish(array $page, string $locale): void
+    private function pages(): AdminPages
     {
-        if (!$this->isPost()) {
-            $this->redirect('page/' . $page['id'] . '/' . $locale);
-
-            return;
-        }
-
-        $this->pages->unpublish((int) $page['id'], $locale);
-        $this->auth->log('unpublish', $page['page_key'] . ' / ' . $locale);
-
-        $this->flash(at('Страница снята с публикации.'));
-        $this->redirect('page/' . $page['id'] . '/' . $locale);
+        return $this->part(AdminPages::class);
     }
 
-    /** @return array<string,array> языки, кроме текущего */
-    private function otherLocales(string $current): array
+    private function inline(): AdminInline
     {
-        $out = $this->site->locales();
-        unset($out[$current]);
-
-        return $out;
+        return $this->part(AdminInline::class);
     }
 
-    /* ------------------------------------------------------------ служебное */
-
-    private function contentFilesCount(): int
+    private function menu(): AdminMenu
     {
-        $count = 0;
-        $dir = APP_DIR . '/content';
-
-        if (!is_dir($dir)) {
-            return 0;
-        }
-
-        $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
-        foreach ($iterator as $file) {
-            if ($file->isFile() && preg_match('~\.(ru|kk)\.php$~', $file->getFilename())) {
-                $count++;
-            }
-        }
-
-        return $count;
+        return $this->part(AdminMenu::class);
     }
 
-    private function isPost(): bool
+    private function media(): AdminMedia
     {
-        return ($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST';
+        return $this->part(AdminMedia::class);
     }
 
-    private function redirect(string $path = ''): void
+    private function leads(): AdminLeads
     {
-        header('Location: ' . $this->url($path));
-        exit;
+        return $this->part(AdminLeads::class);
     }
 
-    public function url(string $path = ''): string
+    private function users(): AdminUsers
     {
-        return rtrim($this->base . '/' . ltrim($path, '/'), '/') ?: $this->base;
+        return $this->part(AdminUsers::class);
     }
 
-    private function flash(string $message): void
+    private function themes(): AdminThemes
     {
-        $_SESSION['flash'][] = $message;
+        return $this->part(AdminThemes::class);
     }
 
-    private function notFound(): void
+    private function seo(): AdminSeo
     {
-        http_response_code(404);
-        $this->render('not-found', [], 'Не найдено');
+        return $this->part(AdminSeo::class);
     }
 
-    private function render(string $template, array $data, string $title = ''): void
+    private function system(): AdminSystem
     {
-        $view = new View($this->site);
-
-        $messages = $_SESSION['flash'] ?? [];
-        unset($_SESSION['flash']);
-
-        $content = $view->render('admin/' . $template, $data + [
-            'admin' => $this,
-            'auth'  => $this->auth,
-        ]);
-
-        echo $view->render('admin/layout', [
-            'admin'    => $this,
-            'auth'     => $this->auth,
-            'content'  => $content,
-            'title'    => at($title),
-            'messages' => $messages,
-        ]);
+        return $this->part(AdminSystem::class);
     }
 }

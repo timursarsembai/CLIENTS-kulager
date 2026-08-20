@@ -10,11 +10,16 @@ declare(strict_types=1);
  */
 final class Auth
 {
-    /** Сколько сессия живёт без действий редактора. */
-    private const IDLE_LIMIT = 28800;
+    /** Открыть сессию админки. Настройка — в AdminSessionStore. */
+    public static function startSession(): void
+    {
+        AdminSessionStore::start();
+    }
 
-    /** Сколько живёт вообще — даже если работать не переставая. */
-    private const ABSOLUTE_LIMIT = 604800;
+    /*
+     * Сроки жизни сессии и её настройка живут в AdminSessionStore: ту же
+     * сессию открывает и публичная часть, а порядку места лучше быть одному.
+     */
 
     private Db $db;
     private array $config;
@@ -26,108 +31,6 @@ final class Auth
         $this->config = $config;
     }
 
-    /**
-     * Открывает сессию админки. Метод статический: та же сессия читается
-     * и на публичной части — по ней сайт узнаёт вошедшего и показывает ему
-     * панель администратора.
-     */
-    public static function startSession(): void
-    {
-        if (session_status() === PHP_SESSION_ACTIVE) {
-            return;
-        }
-
-        $https = ($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off'
-            || ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https';
-
-        /*
-         * PHP сам убирает файлы сессий, к которым не обращались
-         * session.gc_maxlifetime — по умолчанию 24 минуты. Пока это меньше
-         * нашего лимита простоя, вошедшего выбрасывает намного раньше срока,
-         * который админка обещает. Поэтому срок уборки равен нашему.
-         */
-        ini_set('session.gc_maxlifetime', (string) self::IDLE_LIMIT);
-
-        // Сессию с придуманным номером не поднимаем — только со своей
-        ini_set('session.use_strict_mode', '1');
-
-        /*
-         * На общем хостинге сессии всех сайтов лежат в одном каталоге, и чужая
-         * уборка с коротким сроком чистит наши файлы заодно. Свой каталог —
-         * вне веб-корня, поэтому снаружи он недоступен.
-         *
-         * Не вышло (нет прав, запрещена функция) — остаёмся на общем: вход
-         * будет работать, просто с чужим сроком уборки.
-         */
-        $store = APP_DIR . '/sessions';
-
-        /*
-         * 0700 — чтобы файлы сессий не читались соседями по серверу: на
-         * shared-хостинге PHP работает от владельца сайта, и прав хватает.
-         * Локально код смонтирован от другого пользователя, каталог тогда
-         * создаётся с правами окружения — на боевой машине это не так.
-         */
-        if (function_exists('session_save_path')
-            && (is_dir($store) || @mkdir($store, 0700, true))
-            && is_writable($store)
-        ) {
-            self::protectStore($store);
-            session_save_path($store);
-
-            /*
-             * Часть хостингов отключает уборку внутри PHP и чистит свой общий
-             * каталог по расписанию системы. В своём каталоге такой уборки
-             * не будет, и файлы копились бы до упора в квоту, поэтому здесь
-             * включаем её сами.
-             */
-            if ((int) ini_get('session.gc_probability') === 0) {
-                ini_set('session.gc_probability', '1');
-                ini_set('session.gc_divisor', '100');
-            }
-        }
-
-        session_name('kulager_admin');
-        session_set_cookie_params([
-            'lifetime' => self::IDLE_LIMIT,
-            'path'     => '/',
-            'httponly' => true,
-            'secure'   => $https,
-            'samesite' => 'Strict',
-        ]);
-        session_start();
-
-        /*
-         * Срок куки браузер отсчитывает от её выдачи, а не от последнего
-         * действия. Вошедшему выдаём её заново на каждой странице: пока
-         * человек работает, вход не обрывается на ровном месте.
-         */
-        if (($_SESSION['user_id'] ?? 0) > 0 && !headers_sent()) {
-            setcookie(session_name(), session_id(), [
-                'expires'  => time() + self::IDLE_LIMIT,
-                'path'     => '/',
-                'httponly' => true,
-                'secure'   => $https,
-                'samesite' => 'Strict',
-            ]);
-        }
-    }
-
-    /**
-     * Закрывает каталог сессий от веба.
-     *
-     * Обычно app лежит выше корня сайта и снаружи недоступен, но раскладка
-     * бывает и плоской — тогда единственной защитой остаётся этот файл.
-     */
-    private static function protectStore(string $dir): void
-    {
-        $guard = $dir . '/.htaccess';
-
-        if (!is_file($guard)) {
-            @file_put_contents($guard, "Require all denied\n<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n");
-        }
-    }
-
-    /** Есть ли вообще хоть один пользователь — от этого зависит первичная установка. */
     public function hasUsers(): bool
     {
         return (int) $this->db->value('SELECT COUNT(*) FROM users') > 0;
@@ -189,7 +92,7 @@ final class Auth
      */
     public function attempt(string $email, string $password): ?string
     {
-        $ip = $this->ip();
+        $ip = $this->clientIp();
 
         if ($this->tooManyAttempts($ip, $email)) {
             $this->log('login_blocked', $email);
@@ -316,7 +219,7 @@ final class Auth
             return at('Сессия входа истекла. Введите пароль заново.');
         }
 
-        $ip = $this->ip();
+        $ip = $this->clientIp();
 
         if ($this->tooManyAttempts($ip, '')) {
             return at('Слишком много попыток. Повторите через 15 минут.');
@@ -366,131 +269,6 @@ final class Auth
     /** Сколько раз можно ошибиться в коде, прежде чем он сгорит. */
     private const RESET_TRIES = 5;
 
-    /**
-     * Заводит код восстановления и возвращает его — отправлять код наружу
-     * будет вызывающий, через телеграм.
-     *
-     * Возвращает null, если восстановление этому человеку не положено:
-     * почты нет, доступ закрыт. Наружу разница не показывается — иначе
-     * форма превращается в способ узнать, кто здесь заведён.
-     */
-    public function startPasswordReset(string $email): ?array
-    {
-        $user = $this->db->first(
-            'SELECT * FROM users WHERE email = :email',
-            ['email' => mb_substr(trim($email), 0, 191)]
-        );
-
-        if ($user === null || (array_key_exists('is_active', $user) && !$user['is_active'])) {
-            return null;
-        }
-
-        // Прежние коды этого человека гасим: действует только последний
-        $this->db->delete('password_resets', 'user_id = :id AND used_at IS NULL', ['id' => (int) $user['id']]);
-
-        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-
-        $this->db->insert('password_resets', [
-            'user_id'    => (int) $user['id'],
-            'code_hash'  => password_hash($code, PASSWORD_DEFAULT),
-            'ip'         => $this->ip(),
-            'created_at' => date('Y-m-d H:i:s'),
-            'expires_at' => date('Y-m-d H:i:s', time() + self::RESET_TTL),
-        ]);
-
-        $this->log('password_reset_start', (string) $user['email'], $this->ip());
-        $this->db->delete('password_resets', 'expires_at < :old', ['old' => date('Y-m-d H:i:s', time() - 86400)]);
-
-        return ['code' => $code, 'user' => $user];
-    }
-
-    /**
-     * Проверяет код и ставит новый пароль.
-     *
-     * @return string|null текст ошибки, либо null при успехе
-     */
-    public function finishPasswordReset(string $email, string $code, string $password, string $confirm): ?string
-    {
-        if (mb_strlen($password) < 10) {
-            return at('Пароль должен быть не короче 10 символов.');
-        }
-
-        if ($password !== $confirm) {
-            return at('Пароли не совпадают.');
-        }
-
-        $user = $this->db->first(
-            'SELECT * FROM users WHERE email = :email',
-            ['email' => mb_substr(trim($email), 0, 191)]
-        );
-
-        $row = $user === null ? null : $this->db->first(
-            'SELECT * FROM password_resets
-             WHERE user_id = :id AND used_at IS NULL AND expires_at > :now
-             ORDER BY id DESC LIMIT 1',
-            ['id' => (int) $user['id'], 'now' => date('Y-m-d H:i:s')]
-        );
-
-        if ($row === null) {
-            return at('Код не подошёл или устарел. Запросите новый.');
-        }
-
-        // Перебор шестизначного кода: пять попыток, потом код сгорает
-        if ((int) $row['attempts'] >= self::RESET_TRIES) {
-            $this->db->update('password_resets', ['used_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => (int) $row['id']]);
-
-            return at('Код не подошёл или устарел. Запросите новый.');
-        }
-
-        if (!password_verify(trim($code), (string) $row['code_hash'])) {
-            $this->db->update(
-                'password_resets',
-                ['attempts' => (int) $row['attempts'] + 1],
-                'id = :id',
-                ['id' => (int) $row['id']]
-            );
-
-            return at('Код не подошёл или устарел. Запросите новый.');
-        }
-
-        $this->db->update('users', [
-            'password_hash'   => password_hash($password, PASSWORD_DEFAULT),
-            'password_set_at' => date('Y-m-d H:i:s'),
-        ], 'id = :id', ['id' => (int) $user['id']]);
-
-        $this->db->update('password_resets', ['used_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => (int) $row['id']]);
-
-        /*
-         * Снимаем и блокировку по попыткам: обычно пароль восстанавливают
-         * как раз после того, как заперли себя неудачными входами.
-         */
-        $this->db->delete(
-            'login_attempts',
-            'email = :email OR ip = :ip',
-            ['email' => mb_substr((string) $user['email'], 0, 191), 'ip' => $this->ip()]
-        );
-
-        $this->log('password_reset_done', (string) $user['email'], $this->ip());
-
-        return null;
-    }
-
-    /**
-     * Не слишком ли часто просят код. Считаем по адресу: иначе формой
-     * можно засыпать телеграм владельца сообщениями.
-     */
-    public function resetRequestedTooOften(): bool
-    {
-        $count = (int) $this->db->value(
-            'SELECT COUNT(*) FROM password_resets WHERE ip = :ip AND created_at > :since',
-            ['ip' => $this->ip(), 'since' => date('Y-m-d H:i:s', time() - 3600)],
-            0
-        );
-
-        return $count >= 5;
-    }
-
-    /** Запасные коды: десять одноразовых строк, храним только их хеши. */
     public function makeBackupCodes(int $userId): array
     {
         $codes = [];
@@ -568,7 +346,7 @@ final class Auth
         $seen = (int) ($_SESSION['seen_at'] ?? $now);
         $started = (int) ($_SESSION['started_at'] ?? $now);
 
-        return $now - $seen > self::IDLE_LIMIT || $now - $started > self::ABSOLUTE_LIMIT;
+        return $now - $seen > AdminSessionStore::IDLE_LIMIT || $now - $started > AdminSessionStore::ABSOLUTE_LIMIT;
     }
 
     /**
@@ -652,7 +430,8 @@ final class Auth
         return hash('sha256', ($_SERVER['HTTP_USER_AGENT'] ?? '') . '|' . ($_SERVER['HTTP_ACCEPT_LANGUAGE'] ?? ''));
     }
 
-    private function ip(): string
+    /** Адрес посетителя — им же пользуется восстановление пароля. */
+    public function clientIp(): string
     {
         return client_ip((array) ($this->config['trusted_proxies'] ?? []));
     }
