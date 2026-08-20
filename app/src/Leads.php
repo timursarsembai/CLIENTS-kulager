@@ -152,6 +152,16 @@ final class Leads
     }
 
     /**
+     * Запрос к телеграму без данных — для служебных вызовов вроде getUpdates.
+     * Транспорт тот же, что и у отправки: на хостинге бывает закрыто
+     * либо одно, либо другое.
+     */
+    public function ask(string $url): ?string
+    {
+        return $this->request($url, '');
+    }
+
+    /**
      * Запрос к телеграму. cURL есть не везде, поэтому при его отсутствии
      * пробуем обычный поток — на shared-хостинге это обычная ситуация.
      */
@@ -161,7 +171,7 @@ final class Leads
             $ch = curl_init($url);
 
             curl_setopt_array($ch, [
-                CURLOPT_POST           => true,
+                CURLOPT_POST           => $payload !== '',
                 CURLOPT_POSTFIELDS     => $payload,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT        => 8,
@@ -176,7 +186,7 @@ final class Leads
 
         $context = stream_context_create([
             'http' => [
-                'method'        => 'POST',
+                'method'        => $payload === '' ? 'GET' : 'POST',
                 'header'        => "Content-Type: application/x-www-form-urlencoded\r\n",
                 'content'       => $payload,
                 'timeout'       => 8,

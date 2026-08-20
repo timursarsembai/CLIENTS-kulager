@@ -5,8 +5,10 @@ DirectoryIndex index.php
 # заданные в подкаталоге, отменяют правила корня и ломают обработку /admin.
 
 
-SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on
-SetEnvIf X-Forwarded-Proto "^https$" BEHIND_TLS=1
+<IfModule mod_setenvif.c>
+    SetEnvIf X-Forwarded-Proto "^https$" HTTPS=on
+    SetEnvIf X-Forwarded-Proto "^https$" BEHIND_TLS=1
+</IfModule>
 
 <IfModule mod_headers.c>
     # Переадресация админки тоже должна оставаться на https

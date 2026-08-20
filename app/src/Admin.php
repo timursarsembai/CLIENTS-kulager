@@ -1088,11 +1088,8 @@ final class Admin
             return;
         }
 
-        $response = @file_get_contents(
-            'https://api.telegram.org/bot' . $token . '/getUpdates',
-            false,
-            stream_context_create(['http' => ['timeout' => 8, 'ignore_errors' => true]])
-        );
+        $leads = new Leads($this->db, $settings);
+        $response = $leads->ask('https://api.telegram.org/bot' . $token . '/getUpdates');
 
         $data = is_string($response) ? json_decode($response, true) : null;
 

@@ -55,11 +55,29 @@ final class Auth
          * На общем хостинге сессии всех сайтов лежат в одном каталоге, и чужая
          * уборка с коротким сроком чистит наши файлы заодно. Свой каталог —
          * вне веб-корня, поэтому снаружи он недоступен.
+         *
+         * Не вышло (нет прав, запрещена функция) — остаёмся на общем: вход
+         * будет работать, просто с чужим сроком уборки.
          */
         $store = APP_DIR . '/sessions';
 
-        if ((is_dir($store) || @mkdir($store, 0700, true)) && is_writable($store)) {
+        if (function_exists('session_save_path')
+            && (is_dir($store) || @mkdir($store, 0700, true))
+            && is_writable($store)
+        ) {
+            self::protectStore($store);
             session_save_path($store);
+
+            /*
+             * Часть хостингов отключает уборку внутри PHP и чистит свой общий
+             * каталог по расписанию системы. В своём каталоге такой уборки
+             * не будет, и файлы копились бы до упора в квоту, поэтому здесь
+             * включаем её сами.
+             */
+            if ((int) ini_get('session.gc_probability') === 0) {
+                ini_set('session.gc_probability', '1');
+                ini_set('session.gc_divisor', '100');
+            }
         }
 
         session_name('kulager_admin');
@@ -85,6 +103,21 @@ final class Auth
                 'secure'   => $https,
                 'samesite' => 'Strict',
             ]);
+        }
+    }
+
+    /**
+     * Закрывает каталог сессий от веба.
+     *
+     * Обычно app лежит выше корня сайта и снаружи недоступен, но раскладка
+     * бывает и плоской — тогда единственной защитой остаётся этот файл.
+     */
+    private static function protectStore(string $dir): void
+    {
+        $guard = $dir . '/.htaccess';
+
+        if (!is_file($guard)) {
+            @file_put_contents($guard, "Require all denied\n<IfModule !mod_authz_core.c>\n    Deny from all\n</IfModule>\n");
         }
     }
 
