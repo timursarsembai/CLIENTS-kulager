@@ -83,9 +83,17 @@
 }
 .adminbar__brand:hover { color: #72aee6; }
 
-.adminbar__item { color: #c3c4c7; padding: 11px 12px; white-space: nowrap; }
+.adminbar__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #c3c4c7;
+  padding: 11px 12px;
+  white-space: nowrap;
+}
 .adminbar__item:hover { color: #72aee6; background: rgba(255, 255, 255, .06); text-decoration: none; }
 .adminbar__item--accent { color: #f0f0f1; font-weight: 600; }
+.adminbar__icon { flex: none; }
 
 .adminbar__state { color: #a7aaad; padding: 11px 8px; }
 .adminbar__status { color: #a7aaad; padding: 11px 8px; margin-left: auto; }
@@ -96,6 +104,30 @@
 body { padding-top: 38px; }
 
 @media (max-width: 700px) {
+  /* Подписи прячем: с ними пункты переносились на вторую строку и панель
+     накрывала шапку сайта. Остаются значки — каждый со своей подсказкой */
+  .adminbar {
+    flex-wrap: nowrap;
+    gap: 2px;
+    padding: 0 8px;
+  }
+
+  .adminbar__brand { font-size: 12px; padding: 11px 6px 11px 0; }
   .adminbar__state { display: none; }
+  .adminbar__label { display: none; }
+
+  .adminbar__item {
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, .14);
+  }
+  .adminbar__item--accent { border-color: rgba(114, 174, 230, .55); color: #72aee6; }
+
+  /* Строка состояния короткая, но место ей нужно только когда есть текст */
+  .adminbar__status { padding: 11px 4px; font-size: 12px; }
+  .adminbar__status:empty { display: none; }
+
   body { padding-top: 36px; }
 }
