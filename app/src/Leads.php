@@ -23,8 +23,15 @@ final class Leads
      */
     private const RETRY_PAUSE = 500000;
 
-    public function __construct(private Db $db, private Settings $settings)
+    /** @var list<string> адреса прокси, которым верим про адрес посетителя */
+    private array $trustedProxies;
+
+    /**
+     * @param list<string> $trustedProxies из app/config.php; пусто — прокси нет
+     */
+    public function __construct(private Db $db, private Settings $settings, array $trustedProxies = [])
     {
+        $this->trustedProxies = $trustedProxies;
     }
 
     public function isReady(): bool
@@ -318,7 +325,7 @@ final class Leads
 
     private function ip(): string
     {
-        return (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        return client_ip($this->trustedProxies);
     }
 
     /* -------------------------------------------------------------- админка */

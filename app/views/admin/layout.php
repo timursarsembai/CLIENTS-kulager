@@ -45,8 +45,9 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 }
 <?php $logo = $site->contact('logo'); ?>
 <?php if ($logo !== ''): ?>
-<?php /* Логотип в шапке — тот же, что выбран в настройках сайта */ ?>
-.topbar__brand::before {
+<?php /* Логотип из настроек сайта: в шапке админки и на экране входа */ ?>
+.topbar__brand::before,
+.gate__logo {
   -webkit-mask-image: url(<?= e($site->asset($logo)) ?>);
   mask-image: url(<?= e($site->asset($logo)) ?>);
 }
@@ -145,13 +146,32 @@ $themeVars = $themes['light']['vars'] ?? ($themes[$site->defaultTheme()]['vars']
 <div class="topbar__scrim" data-topbar-scrim></div>
 <?php endif; ?>
 
-<main class="<?= $user ? 'shell' : 'shell shell--narrow' ?>">
+<?php if ($user): ?>
+<main class="shell">
   <?php foreach ($messages as $message): ?>
     <div class="notice notice--ok"><?= e($message) ?></div>
   <?php endforeach; ?>
 
   <?= $content ?>
 </main>
+<?php else: ?>
+<?php /* Гостю показываем не урезанную админку, а отдельный экран входа */ ?>
+<main class="gate">
+  <div class="gate__inner">
+    <a class="gate__brand" href="/" title="<?= ate('На сайт') ?>">
+      <span class="gate__logo" role="img" aria-label="KULAGER"></span>
+    </a>
+
+    <?php foreach ($messages as $message): ?>
+      <div class="notice notice--ok"><?= e($message) ?></div>
+    <?php endforeach; ?>
+
+    <?= $content ?>
+
+    <p class="gate__foot"><a href="/"><?= ate('Вернуться на сайт') ?></a></p>
+  </div>
+</main>
+<?php endif; ?>
 
 <?php if ($user): ?>
 <?php /* Окно выбора картинки: одно на страницу, открывается из любого поля */ ?>

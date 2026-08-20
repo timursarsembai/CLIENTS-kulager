@@ -25,4 +25,8 @@ declare(strict_types=1);
 
     <button type="submit" class="btn btn--primary"><?= ate('Войти') ?></button>
   </form>
+
+  <p class="gate__aside">
+    <a href="<?= e($admin->url('vosstanovlenie')) ?>"><?= ate('Забыли пароль?') ?></a>
+  </p>
 </div>

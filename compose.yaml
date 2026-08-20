@@ -20,6 +20,10 @@ services:
       KULAGER_DB_DSN: "mysql:host=db;dbname=kulager;charset=utf8mb4"
       KULAGER_DB_USER: "${KULAGER_DB_USER:-kulager}"
       KULAGER_DB_PASS: "${KULAGER_DB_PASS:?задайте пароль в .env — см. .env.example}"
+      # Перед сайтом стоит nginx-proxy-manager, поэтому настоящий адрес
+      # посетителя приходит заголовком. Без этой строки все посетители
+      # считаются одним адресом и делят лимиты попыток входа и заявок.
+      KULAGER_TRUSTED_PROXIES: "${KULAGER_TRUSTED_PROXIES:-}"
     networks:
       # nginx-proxy-manager обращается к контейнеру по имени kulager-web:80
       - proxy-network

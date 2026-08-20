@@ -52,6 +52,66 @@ code {
   border-radius: 0;
 }
 
+/* --------------------------------------------------------- экран входа */
+
+/* Вход — отдельная страница, а не админка без содержимого: логотип,
+   одна карточка по центру и никакой навигации. Акцентная черта над
+   карточкой повторяет приём с сайта — ею отбиты заголовки секций. */
+
+.gate {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: clamp(24px, 6vw, 64px) 20px;
+  background:
+    linear-gradient(180deg, var(--surface-3) 0%, transparent 42%),
+    var(--bg);
+}
+
+.gate__inner { width: 100%; max-width: 420px; }
+
+.gate__brand { display: block; margin-bottom: clamp(20px, 4vw, 32px); }
+.gate__brand:hover { text-decoration: none; }
+
+.gate__logo {
+  display: block;
+  width: 153px;
+  height: 26px;
+  margin: 0 auto;
+  background: var(--text-strong);
+  -webkit-mask: url(../img/deck/logo-blue.png) center / contain no-repeat;
+  mask: url(../img/deck/logo-blue.png) center / contain no-repeat;
+}
+
+.gate .card {
+  border-top: 3px solid var(--accent);
+  padding: clamp(24px, 5vw, 34px);
+}
+
+.gate .card__title {
+  font-size: 22px;
+  letter-spacing: .02em;
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.gate .card__lead { text-align: center; }
+.gate .btn--primary { width: 100%; justify-content: center; }
+
+.gate__foot {
+  margin: 18px 0 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.gate__foot a { color: var(--ink-3); }
+.gate__foot a:hover { color: var(--accent); }
+
+/* Ссылка «Забыли пароль?» под кнопкой — тише самой кнопки */
+.gate__aside { margin: 14px 0 0; text-align: center; font-size: 13px; }
+
 /* ------------------------------------------------------------- шапка */
 
 .topbar {

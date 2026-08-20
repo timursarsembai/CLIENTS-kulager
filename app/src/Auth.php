@@ -61,6 +61,12 @@ final class Auth
          */
         $store = APP_DIR . '/sessions';
 
+        /*
+         * 0700 — чтобы файлы сессий не читались соседями по серверу: на
+         * shared-хостинге PHP работает от владельца сайта, и прав хватает.
+         * Локально код смонтирован от другого пользователя, каталог тогда
+         * создаётся с правами окружения — на боевой машине это не так.
+         */
         if (function_exists('session_save_path')
             && (is_dir($store) || @mkdir($store, 0700, true))
             && is_writable($store)
@@ -201,7 +207,19 @@ final class Auth
             $this->recordAttempt($ip, $email);
             $this->log('login_failed', $email, $ip);
 
-            return at('Неверная почта или пароль.');
+            /*
+             * Сколько попыток осталось, говорим прямо: без этого человек,
+             * ошибившийся в своём же пароле, упирается в блокировку без
+             * предупреждения. Подбору такая подсказка не помогает — счётчик
+             * он и так видит по факту блокировки.
+             */
+            $left = $this->attemptsLeft($ip, $email);
+
+            if ($left <= 0) {
+                return at('Слишком много попыток входа. Повторите через 15 минут.');
+            }
+
+            return at('Неверная почта или пароль.') . ' ' . $this->attemptsHint($left);
         }
 
         // Доступ закрыт администратором — пароль правильный, но входа нет
@@ -331,7 +349,145 @@ final class Auth
         $this->recordAttempt($ip, (string) $user['email']);
         $this->log('login_code_failed', (string) $user['email'], $ip);
 
-        return at('Код не подошёл. Проверьте время на телефоне.');
+        $left = $this->attemptsLeft($ip, (string) $user['email']);
+
+        if ($left <= 0) {
+            return at('Слишком много попыток. Повторите через 15 минут.');
+        }
+
+        return at('Код не подошёл. Проверьте время на телефоне.') . ' ' . $this->attemptsHint($left);
+    }
+
+    /* ------------------------------------------- восстановление пароля */
+
+    /** Сколько живёт код восстановления. */
+    private const RESET_TTL = 900;
+
+    /** Сколько раз можно ошибиться в коде, прежде чем он сгорит. */
+    private const RESET_TRIES = 5;
+
+    /**
+     * Заводит код восстановления и возвращает его — отправлять код наружу
+     * будет вызывающий, через телеграм.
+     *
+     * Возвращает null, если восстановление этому человеку не положено:
+     * почты нет, доступ закрыт. Наружу разница не показывается — иначе
+     * форма превращается в способ узнать, кто здесь заведён.
+     */
+    public function startPasswordReset(string $email): ?array
+    {
+        $user = $this->db->first(
+            'SELECT * FROM users WHERE email = :email',
+            ['email' => mb_substr(trim($email), 0, 191)]
+        );
+
+        if ($user === null || (array_key_exists('is_active', $user) && !$user['is_active'])) {
+            return null;
+        }
+
+        // Прежние коды этого человека гасим: действует только последний
+        $this->db->delete('password_resets', 'user_id = :id AND used_at IS NULL', ['id' => (int) $user['id']]);
+
+        $code = str_pad((string) random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+        $this->db->insert('password_resets', [
+            'user_id'    => (int) $user['id'],
+            'code_hash'  => password_hash($code, PASSWORD_DEFAULT),
+            'ip'         => $this->ip(),
+            'created_at' => date('Y-m-d H:i:s'),
+            'expires_at' => date('Y-m-d H:i:s', time() + self::RESET_TTL),
+        ]);
+
+        $this->log('password_reset_start', (string) $user['email'], $this->ip());
+        $this->db->delete('password_resets', 'expires_at < :old', ['old' => date('Y-m-d H:i:s', time() - 86400)]);
+
+        return ['code' => $code, 'user' => $user];
+    }
+
+    /**
+     * Проверяет код и ставит новый пароль.
+     *
+     * @return string|null текст ошибки, либо null при успехе
+     */
+    public function finishPasswordReset(string $email, string $code, string $password, string $confirm): ?string
+    {
+        if (mb_strlen($password) < 10) {
+            return at('Пароль должен быть не короче 10 символов.');
+        }
+
+        if ($password !== $confirm) {
+            return at('Пароли не совпадают.');
+        }
+
+        $user = $this->db->first(
+            'SELECT * FROM users WHERE email = :email',
+            ['email' => mb_substr(trim($email), 0, 191)]
+        );
+
+        $row = $user === null ? null : $this->db->first(
+            'SELECT * FROM password_resets
+             WHERE user_id = :id AND used_at IS NULL AND expires_at > :now
+             ORDER BY id DESC LIMIT 1',
+            ['id' => (int) $user['id'], 'now' => date('Y-m-d H:i:s')]
+        );
+
+        if ($row === null) {
+            return at('Код не подошёл или устарел. Запросите новый.');
+        }
+
+        // Перебор шестизначного кода: пять попыток, потом код сгорает
+        if ((int) $row['attempts'] >= self::RESET_TRIES) {
+            $this->db->update('password_resets', ['used_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => (int) $row['id']]);
+
+            return at('Код не подошёл или устарел. Запросите новый.');
+        }
+
+        if (!password_verify(trim($code), (string) $row['code_hash'])) {
+            $this->db->update(
+                'password_resets',
+                ['attempts' => (int) $row['attempts'] + 1],
+                'id = :id',
+                ['id' => (int) $row['id']]
+            );
+
+            return at('Код не подошёл или устарел. Запросите новый.');
+        }
+
+        $this->db->update('users', [
+            'password_hash'   => password_hash($password, PASSWORD_DEFAULT),
+            'password_set_at' => date('Y-m-d H:i:s'),
+        ], 'id = :id', ['id' => (int) $user['id']]);
+
+        $this->db->update('password_resets', ['used_at' => date('Y-m-d H:i:s')], 'id = :id', ['id' => (int) $row['id']]);
+
+        /*
+         * Снимаем и блокировку по попыткам: обычно пароль восстанавливают
+         * как раз после того, как заперли себя неудачными входами.
+         */
+        $this->db->delete(
+            'login_attempts',
+            'email = :email OR ip = :ip',
+            ['email' => mb_substr((string) $user['email'], 0, 191), 'ip' => $this->ip()]
+        );
+
+        $this->log('password_reset_done', (string) $user['email'], $this->ip());
+
+        return null;
+    }
+
+    /**
+     * Не слишком ли часто просят код. Считаем по адресу: иначе формой
+     * можно засыпать телеграм владельца сообщениями.
+     */
+    public function resetRequestedTooOften(): bool
+    {
+        $count = (int) $this->db->value(
+            'SELECT COUNT(*) FROM password_resets WHERE ip = :ip AND created_at > :since',
+            ['ip' => $this->ip(), 'since' => date('Y-m-d H:i:s', time() - 3600)],
+            0
+        );
+
+        return $count >= 5;
     }
 
     /** Запасные коды: десять одноразовых строк, храним только их хеши. */
@@ -421,6 +577,42 @@ final class Auth
      * Только по адресу мало: подбор с сотни адресов по одному аккаунту
      * лимит не превысит, а до пароля доберётся.
      */
+    /**
+     * Сколько попыток осталось до блокировки — по тому счётчику,
+     * который ближе к пределу: по адресу или по почте.
+     */
+    private function attemptsLeft(string $ip, string $email): int
+    {
+        $limit = (int) ($this->config['login_attempts_limit'] ?? 10);
+        $since = date('Y-m-d H:i:s', time() - 900);
+
+        $used = (int) $this->db->value(
+            'SELECT COUNT(*) FROM login_attempts WHERE ip = :ip AND attempted_at > :since',
+            ['ip' => $ip, 'since' => $since],
+            0
+        );
+
+        if ($email !== '') {
+            $byEmail = (int) $this->db->value(
+                'SELECT COUNT(*) FROM login_attempts WHERE email = :email AND attempted_at > :since',
+                ['email' => mb_substr($email, 0, 191), 'since' => $since],
+                0
+            );
+
+            $used = max($used, $byEmail);
+        }
+
+        return max(0, $limit - $used);
+    }
+
+    /** Подсказка про остаток: число и слово в нужном числе. */
+    private function attemptsHint(int $left): string
+    {
+        return $left === 1
+            ? at('Осталась одна попытка, потом вход закроется на 15 минут.')
+            : at('Осталось попыток: %d.', $left);
+    }
+
     private function tooManyAttempts(string $ip, string $email): bool
     {
         $limit = (int) ($this->config['login_attempts_limit'] ?? 10);
@@ -462,6 +654,6 @@ final class Auth
 
     private function ip(): string
     {
-        return (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
+        return client_ip((array) ($this->config['trusted_proxies'] ?? []));
     }
 }

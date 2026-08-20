@@ -73,7 +73,7 @@ $navigation = new NavigationRepository($db);
 $themes = new ThemeRepository($db, $settings);
 $counters = new Counters($settings);
 $site = new Site($config, $settings, $navigation, $themes, $counters);
-$leads = new Leads($db, $settings);
+$leads = new Leads($db, $settings, (array) ($config['trusted_proxies'] ?? []));
 $pages = new PageRepository($db, $config);
 
 // Кэш готовых страниц: при включённой отладке отключён, иначе правки
