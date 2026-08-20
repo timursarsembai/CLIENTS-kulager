@@ -33,7 +33,7 @@ $action = [
     ]],
     'message' => ['type' => 'text', 'label' => 'Текст сообщения в WhatsApp', 'rows' => 2,
                   'hint' => 'Только для кнопки WhatsApp: подставится в переписку.'],
-    'url'     => ['type' => 'string', 'label' => 'Адрес',
+    'url'     => ['type' => 'url', 'label' => 'Адрес',
                   'hint' => 'Для обычных кнопок. Внутренний адрес без слэша: modeli/mc1'],
     'size'    => ['type' => 'select', 'label' => 'Размер', 'default' => '', 'options' => [
         ''   => 'Обычный',
@@ -455,7 +455,7 @@ return [
             ]],
             'download' => ['type' => 'group', 'label' => 'Кнопка загрузки файла', 'fields' => [
                 'label' => ['type' => 'string', 'label' => 'Подпись'],
-                'url'   => ['type' => 'string', 'label' => 'Адрес файла'],
+                'url'   => ['type' => 'url', 'label' => 'Адрес файла'],
             ]],
             'form' => ['type' => 'group', 'label' => 'Правая часть', 'fields' => [
                 'title'   => ['type' => 'string', 'label' => 'Заголовок'],

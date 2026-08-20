@@ -131,6 +131,13 @@ final class Admin
             return;
         }
 
+        // Восстановление пароля открыто без входа — за тем и заведено
+        if ($path === 'vosstanovlenie') {
+            $this->passwordReset();
+
+            return;
+        }
+
         if (!$this->auth->check()) {
             $this->redirect('login');
 
@@ -346,6 +353,20 @@ final class Admin
     {
         if (!isset(Settings::FIELDS[$key])) {
             $this->json(['error' => at('Такой настройки нет.')], 422);
+
+            return;
+        }
+
+        /*
+         * На странице правятся только контакты — то, что там и видно.
+         * Остальные настройки (токен бота, счётчики, SEO) в админке закрыты
+         * администратором, и эта дверь не должна их открывать: иначе редактор
+         * одним запросом уводит уведомления о заявках в свой чат.
+         */
+        $group = (string) (Settings::FIELDS[$key]['group'] ?? '');
+
+        if ($group !== 'contacts' && !$this->auth->isAdmin()) {
+            $this->json(['error' => at('Эту настройку меняет только администратор.')], 403);
 
             return;
         }
@@ -598,6 +619,88 @@ final class Admin
         }
 
         $this->render('login', ['error' => $error, 'email' => $_POST['email'] ?? ''], 'Вход');
+    }
+
+    /**
+     * Восстановление пароля через телеграм.
+     *
+     * Код уходит в тот же чат, куда падают заявки: почтой на shared-хостинге
+     * пользоваться ненадёжно — письма уходят в спам или не уходят вовсе,
+     * а телеграм у владельца сайта уже настроен и проверен.
+     *
+     * Форма одна, в два шага: сначала почта, потом код и новый пароль.
+     * О том, заведена ли такая почта, форма не рассказывает.
+     */
+    private function passwordReset(): void
+    {
+        if ($this->auth->check()) {
+            $this->redirect('');
+
+            return;
+        }
+
+        $step = ($_POST['step'] ?? $_GET['step'] ?? 'email') === 'code' ? 'code' : 'email';
+        $email = trim((string) ($_POST['email'] ?? ''));
+        $error = null;
+        $sent = false;
+
+        if ($this->isPost() && $step === 'email') {
+            if ($this->auth->resetRequestedTooOften()) {
+                $error = at('Код уже запрашивали несколько раз. Попробуйте через час.');
+            } else {
+                $started = $this->auth->startPasswordReset($email);
+
+                /*
+                 * Ответ одинаковый и когда почта есть, и когда её нет:
+                 * иначе форма превращается в способ узнать, кто здесь заведён.
+                 */
+                if ($started !== null) {
+                    $this->sendResetCode((string) $started['code'], (array) $started['user']);
+                }
+
+                $sent = true;
+                $step = 'code';
+            }
+        }
+
+        if ($this->isPost() && $step === 'code' && ($_POST['step'] ?? '') === 'code') {
+            $error = $this->auth->finishPasswordReset(
+                $email,
+                (string) ($_POST['code'] ?? ''),
+                (string) ($_POST['password'] ?? ''),
+                (string) ($_POST['password_confirm'] ?? '')
+            );
+
+            if ($error === null) {
+                $this->flash(at('Пароль изменён — войдите с новым.'));
+                $this->redirect('login');
+
+                return;
+            }
+        }
+
+        $this->render('password-reset', [
+            'step'  => $step,
+            'email' => $email,
+            'error' => $error,
+            'sent'  => $sent,
+        ], 'Восстановление пароля');
+    }
+
+    /** Код восстановления уходит в телеграм — тем же путём, что и заявки. */
+    private function sendResetCode(string $code, array $user): void
+    {
+        $settings = new Settings($this->db, (array) $this->config['contacts']);
+        $leads = new Leads($this->db, $settings, (array) ($this->config['trusted_proxies'] ?? []));
+
+        $text = "<b>Восстановление пароля KULAGER</b>\n\n"
+            . 'Кому: ' . htmlspecialchars((string) ($user['email'] ?? ''), ENT_NOQUOTES, 'UTF-8') . "\n"
+            . 'Код: <code>' . $code . "</code>\n"
+            . "Годен 15 минут.\n\n"
+            . 'Если пароль никто не восстанавливал — просто не вводите код '
+            . 'и смените его сами в разделе «Профиль».';
+
+        $leads->send($text);
     }
 
     private function logout(): void
@@ -930,7 +1033,8 @@ final class Admin
 
     private function leadRoutes(array $segments): void
     {
-        $leads = new Leads($this->db, new Settings($this->db, (array) $this->config['contacts']));
+        $leads = new Leads($this->db, new Settings($this->db, (array) $this->config['contacts']),
+            (array) ($this->config['trusted_proxies'] ?? []));
         $head = (string) ($segments[0] ?? '');
 
         if ($head === '') {
@@ -1088,7 +1192,7 @@ final class Admin
             return;
         }
 
-        $leads = new Leads($this->db, $settings);
+        $leads = new Leads($this->db, $settings, (array) ($this->config['trusted_proxies'] ?? []));
         $response = $leads->ask('https://api.telegram.org/bot' . $token . '/getUpdates');
 
         $data = is_string($response) ? json_decode($response, true) : null;
@@ -1362,21 +1466,30 @@ final class Admin
         return (int) $this->db->value("SELECT COUNT(*) FROM users WHERE role = 'admin' AND is_active = 1", [], 0);
     }
 
-    /** Пароль, который не придётся придумывать: четыре слова через дефис. */
+    /**
+     * Пароль, который не придётся придумывать: три группы по пять знаков.
+     *
+     * Раньше он собирался из словаря на шестнадцать слов — читался легко,
+     * но и перебирался за четыре миллиона вариантов, а словарь лежит в этом
+     * же файле на виду. Здесь набор из 32 знаков на 15 позиций: столько
+     * вариантов не переберёт никто, а списать с листка всё ещё можно —
+     * похожие друг на друга знаки (0, O, 1, l, I) из набора убраны.
+     */
     private function newPassword(): string
     {
-        $words = [
-            'платформа', 'шасси', 'кузов', 'мотор', 'ремень', 'колесо', 'тормоз', 'подвеска',
-            'ферма', 'теплица', 'склад', 'элеватор', 'карьер', 'рынок', 'питомник', 'парк',
-        ];
-
+        $alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
+        $max = strlen($alphabet) - 1;
         $parts = [];
 
-        for ($i = 0; $i < 3; $i++) {
-            $parts[] = $words[random_int(0, count($words) - 1)];
-        }
+        for ($group = 0; $group < 3; $group++) {
+            $chunk = '';
 
-        $parts[] = (string) random_int(100, 999);
+            for ($i = 0; $i < 5; $i++) {
+                $chunk .= $alphabet[random_int(0, $max)];
+            }
+
+            $parts[] = $chunk;
+        }
 
         return implode('-', $parts);
     }
@@ -1550,7 +1663,8 @@ final class Admin
             $vars = [];
 
             foreach (array_keys(ThemeRepository::VARS) as $key) {
-                $value = trim((string) ($_POST['vars'][$key] ?? ''));
+                // Значение уходит в <style> на каждой странице — чистим на входе
+                $value = ThemeRepository::cleanValue((string) ($_POST['vars'][$key] ?? ''));
 
                 if ($value !== '') {
                     $vars[$key] = $value;
@@ -1559,7 +1673,7 @@ final class Admin
 
             $themes->save(
                 (int) $theme['id'],
-                trim((string) ($_POST['name'] ?? $theme['name'])),
+                mb_substr(trim(strip_tags((string) ($_POST['name'] ?? $theme['name']))), 0, 60),
                 $vars,
                 [
                     trim((string) ($_POST['swatch_bg'] ?? '')),
@@ -2235,6 +2349,14 @@ final class Admin
 
     private function blockDelete(array $page, string $locale, array $block): void
     {
+        // Только POST: по GET токен не проверяется, и картинка с таким
+        // адресом на чужой странице удалила бы блок руками вошедшего
+        if (!$this->isPost()) {
+            $this->redirect('page/' . $page['id'] . '/' . $locale);
+
+            return;
+        }
+
         $this->keepUndo($page, $locale, 'удаление блока «' . Blocks::title($block['type']) . '»');
         $this->pages->deleteBlock((int) $block['id']);
         $this->flash(at('Блок «%s» удалён.', at(Blocks::title($block['type']))));
@@ -2243,12 +2365,24 @@ final class Admin
 
     private function blockToggle(array $page, string $locale, array $block): void
     {
+        if (!$this->isPost()) {
+            $this->redirect('page/' . $page['id'] . '/' . $locale);
+
+            return;
+        }
+
         $this->pages->setBlockVisible((int) $block['id'], !$block['is_visible']);
         $this->redirect('page/' . $page['id'] . '/' . $locale . '#block-' . $block['id']);
     }
 
     private function blockDuplicate(array $page, string $locale, array $block): void
     {
+        if (!$this->isPost()) {
+            $this->redirect('page/' . $page['id'] . '/' . $locale);
+
+            return;
+        }
+
         $id = $this->pages->addBlock(
             (int) $page['id'],
             $locale,

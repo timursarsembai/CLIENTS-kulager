@@ -51,4 +51,5 @@ foreach ((array) ($meta['schema'] ?? []) as $node) {
 
 $payload = ['@context' => 'https://schema.org', '@graph' => $graph];
 ?>
-<script type="application/ld+json"><?= json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+<?php /* JSON_HEX_TAG: в названиях и адресах может оказаться «</script>» */ ?>
+<script type="application/ld+json"><?= json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>

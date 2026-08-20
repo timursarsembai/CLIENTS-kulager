@@ -163,6 +163,14 @@ final class Blocks
                  */
                 return $value === '__custom__' ? '' : self::cleanUrl($value);
 
+            /*
+             * Адрес, вписанный руками. От обычной строки отличается тем,
+             * что схема проверяется по белому списку: иначе в кнопку
+             * попадает javascript:… и срабатывает у каждого посетителя.
+             */
+            case 'url':
+                return self::cleanUrl(is_string($value) ? $value : '');
+
             case 'richtext':
                 return self::cleanHtml(is_string($value) ? $value : '');
 

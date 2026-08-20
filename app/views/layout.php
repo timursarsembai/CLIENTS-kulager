@@ -99,7 +99,8 @@ foreach ($themes as $id => $theme) {
 </style>
 <?php endif; ?>
 
-<script id="kulager-themes" type="application/json"><?= json_encode($themesJson, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?></script>
+<?php /* JSON_HEX_TAG: строка «</script>» внутри данных иначе закрыла бы этот тег */ ?>
+<script id="kulager-themes" type="application/json"><?= json_encode($themesJson, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 <script>
 /* Тема применяется до первой отрисовки, иначе страница мигает чужими цветами */
 (function () {

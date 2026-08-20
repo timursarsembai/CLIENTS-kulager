@@ -225,6 +225,27 @@ final class ThemeRepository
     /* ------------------------------------------------------------ правка */
 
     /** @param array<string,string> $vars */
+    /**
+     * Значение переменной темы уходит прямо в <style> на каждой странице.
+     * Кавычки, скобки и знаки разметки позволяют выйти из объявления и
+     * дописать свой тег, поэтому пропускаем только то, из чего состоят
+     * цвета и размеры: буквы, цифры, #, %, точки, запятые, пробелы.
+     *
+     * Правит темы только администратор, но одна опечатка в поле не должна
+     * оборачиваться скриптом на всём сайте.
+     */
+    public static function cleanValue(string $value): string
+    {
+        $value = trim(preg_replace('~[\x00-\x1F<>"\'\\\\;{}]+~u', '', $value) ?? '');
+
+        // url(…) и expression(…) в теме не нужны, а увести могут далеко
+        if (preg_match('~\b(url|expression|image-set|@import)\s*\(~i', $value) === 1) {
+            return '';
+        }
+
+        return mb_substr($value, 0, 200);
+    }
+
     public function save(int $id, string $name, array $vars, array $swatch): void
     {
         $this->db->update('themes', [
