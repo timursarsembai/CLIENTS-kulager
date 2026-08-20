@@ -10,29 +10,69 @@
   var topbarScrim = document.querySelector('[data-topbar-scrim]');
 
   if (topbar && topbarToggle) {
+    var topbarNav = topbar.querySelector('.topbar__nav');
+    var topbarClose = topbar.querySelector('[data-topbar-close]');
+    // Панель выезжает только на телефоне; на широком экране это обычная строка меню
+    var narrow = window.matchMedia('(max-width: 760px)');
+
+    /** Ссылки и кнопки внутри панели — в порядке обхода по Tab. */
+    var navFocusable = function () {
+      if (!topbarNav) return [];
+
+      return Array.prototype.filter.call(
+        topbarNav.querySelectorAll('a[href], button:not([disabled])'),
+        function (el) { return el.getClientRects().length > 0; }
+      );
+    };
+
+    /* Закрытая панель уехала за край экрана, но остаётся в разметке: без
+       inert по ней ходит Tab и читает голосовой доступ. На широком экране
+       разделы видны в строке, поэтому inert там не нужен. */
+    var syncInert = function () {
+      if (!topbarNav) return;
+
+      if (narrow.matches && !topbar.classList.contains('is-open')) {
+        topbarNav.setAttribute('inert', '');
+      } else {
+        topbarNav.removeAttribute('inert');
+      }
+    };
+
     /* Панель выезжает поверх страницы, поэтому её открытость помечаем и на
        body: под ней страница не прокручивается, а затемнение проявляется. */
-    var setNav = function (open) {
+    var setNav = function (open, returnFocus) {
       topbar.classList.toggle('is-open', open);
       document.body.classList.toggle('is-nav-open', open);
       topbarToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+      syncInert();
+
+      if (open) {
+        // Открыли — фокус уводим внутрь, иначе Tab уйдёт под затемнение
+        var items = navFocusable();
+        (topbarClose || items[0] || topbarNav).focus();
+      } else if (returnFocus) {
+        topbarToggle.focus();
+      }
     };
+
+    syncInert();
+
+    if (narrow.addEventListener) {
+      narrow.addEventListener('change', syncInert);
+    } else if (narrow.addListener) {
+      narrow.addListener(syncInert); // Safari до 14
+    }
 
     topbarToggle.addEventListener('click', function () {
       setNav(!topbar.classList.contains('is-open'));
     });
 
     if (topbarScrim) {
-      topbarScrim.addEventListener('click', function () { setNav(false); });
+      topbarScrim.addEventListener('click', function () { setNav(false, true); });
     }
 
-    var topbarClose = topbar.querySelector('[data-topbar-close]');
-
     if (topbarClose) {
-      topbarClose.addEventListener('click', function () {
-        setNav(false);
-        topbarToggle.focus();
-      });
+      topbarClose.addEventListener('click', function () { setNav(false, true); });
     }
 
     // Переход по разделу закрывает панель сам: страница успевает смениться
@@ -41,9 +81,33 @@
     });
 
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape' && topbar.classList.contains('is-open')) {
-        setNav(false);
-        topbarToggle.focus();
+      if (!topbar.classList.contains('is-open')) return;
+
+      if (event.key === 'Escape') {
+        setNav(false, true);
+
+        return;
+      }
+
+      // Пока панель открыта, Tab ходит по кругу внутри неё
+      if (event.key !== 'Tab' || !topbarNav) return;
+
+      var items = navFocusable();
+
+      if (items.length === 0) return;
+
+      var first = items[0];
+      var last = items[items.length - 1];
+
+      if (!topbarNav.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last : first).focus();
+      } else if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
       }
     });
 
