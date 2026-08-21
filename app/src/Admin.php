@@ -5,7 +5,7 @@ require_once APP_DIR . '/src/AdminContext.php';
 require_once APP_DIR . '/src/AdminSection.php';
 
 foreach ([
-    'AdminAccess', 'AdminPages', 'AdminInline', 'AdminMenu', 'AdminMedia',
+    'AdminAccess', 'AdminPageSection', 'AdminPages', 'AdminBlocks', 'AdminInline', 'AdminMenu', 'AdminMedia',
     'AdminLeads', 'AdminUsers', 'AdminThemes', 'AdminSeo', 'AdminSystem',
 ] as $section) {
     require_once APP_DIR . '/src/' . $section . '.php';

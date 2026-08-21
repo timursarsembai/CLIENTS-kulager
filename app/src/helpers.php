@@ -64,7 +64,7 @@ function client_ip(array $trusted = []): string
 {
     $remote = (string) ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0');
 
-    if ($trusted === [] || !in_array($remote, $trusted, true)) {
+    if ($trusted === [] || !ip_in_list($remote, $trusted)) {
         return $remote;
     }
 
@@ -80,4 +80,67 @@ function client_ip(array $trusted = []): string
     }
 
     return $remote;
+}
+
+/**
+ * Входит ли адрес в список доверенных.
+ *
+ * Список принимает и отдельные адреса, и диапазоны вида 172.18.0.0/16:
+ * у контейнера обратного прокси адрес меняется при пересоздании, а сеть,
+ * в которой он живёт, остаётся прежней.
+ *
+ * @param list<string> $list
+ */
+function ip_in_list(string $ip, array $list): bool
+{
+    $packed = @inet_pton($ip);
+
+    if ($packed === false) {
+        return false;
+    }
+
+    foreach ($list as $entry) {
+        $entry = trim($entry);
+
+        if ($entry === '') {
+            continue;
+        }
+
+        if (!str_contains($entry, '/')) {
+            if ($entry === $ip) {
+                return true;
+            }
+
+            continue;
+        }
+
+        [$net, $bits] = explode('/', $entry, 2);
+        $netPacked = @inet_pton(trim($net));
+        $bits = (int) $bits;
+
+        // Адреса разной длины (IPv4 против IPv6) не сравниваем
+        if ($netPacked === false || strlen($netPacked) !== strlen($packed)) {
+            continue;
+        }
+
+        $whole = intdiv($bits, 8);
+        $rest = $bits % 8;
+
+        if ($whole > 0 && strncmp($packed, $netPacked, $whole) !== 0) {
+            continue;
+        }
+
+        if ($rest === 0) {
+            return true;
+        }
+
+        // Хвост короче байта: сравниваем только старшие биты
+        $mask = chr((0xFF << (8 - $rest)) & 0xFF);
+
+        if ((($packed[$whole] ?? "\0") & $mask) === (($netPacked[$whole] ?? "\0") & $mask)) {
+            return true;
+        }
+    }
+
+    return false;
 }

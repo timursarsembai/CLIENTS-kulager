@@ -23,7 +23,10 @@ services:
       # Перед сайтом стоит nginx-proxy-manager, поэтому настоящий адрес
       # посетителя приходит заголовком. Без этой строки все посетители
       # считаются одним адресом и делят лимиты попыток входа и заявок.
-      KULAGER_TRUSTED_PROXIES: "${KULAGER_TRUSTED_PROXIES:-}"
+      #
+      # Значение здесь, а не в .env: это не секрет, а сеть, в которой живёт
+      # прокси. Адрес его контейнера меняется при пересоздании, сеть — нет.
+      KULAGER_TRUSTED_PROXIES: "${KULAGER_TRUSTED_PROXIES:-172.18.0.0/16}"
     networks:
       # nginx-proxy-manager обращается к контейнеру по имени kulager-web:80
       - proxy-network
