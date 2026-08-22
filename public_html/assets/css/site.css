@@ -480,6 +480,87 @@ h1, h2, h3, h4, a, button, table, th, td, img, figure, figcaption, ul, li {
 .lead-form--narrow .lead-form__foot { margin-top: 4px; }
 .lead-form--narrow .btn { width: 100%; justify-content: center; }
 
+/* ------------------------------------------------------- правовой документ */
+
+/* Документ читают и печатают, поэтому он выглядит листом: белая бумага,
+   тёмный текст и поля по краям — независимо от выбранной темы сайта.
+   Ширина в ch, а не в пикселях: строка длиннее 90 знаков плохо читается. */
+.legal {
+  padding: clamp(24px, 4vw, 56px) clamp(16px, 3vw, 32px) clamp(48px, 6vw, 88px);
+  background: var(--surface-3);
+}
+
+.legal__sheet {
+  max-width: 88ch;
+  margin: 0 auto;
+  background: #ffffff;
+  color: #1b1b1b;
+  border: 1px solid rgba(0, 0, 0, .12);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .18);
+  padding: clamp(28px, 5vw, 72px) clamp(20px, 5vw, 76px);
+}
+
+.legal__head {
+  border-bottom: 2px solid #1b1b1b;
+  padding-bottom: 18px;
+  margin-bottom: 28px;
+}
+
+.legal__title {
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: clamp(22px, 2.6vw, 30px);
+  line-height: 1.2;
+  letter-spacing: .01em;
+  color: #111111;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.legal__date { margin: 10px 0 0; font-size: 13px; color: #5b5b5b; }
+
+.legal__intro { margin-bottom: 26px; font-size: 15px; line-height: 1.7; color: #2c2c2c; }
+
+.legal__section { margin-bottom: 24px; }
+
+.legal__section-title {
+  display: flex;
+  gap: 10px;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: 17px;
+  line-height: 1.3;
+  color: #111111;
+  margin: 0 0 10px;
+  text-transform: none;
+}
+.legal__num { color: #8a8a8a; }
+
+.legal__text { font-size: 15px; line-height: 1.7; color: #2c2c2c; }
+.legal__text p { margin: 0 0 10px; }
+.legal__text p:last-child { margin-bottom: 0; }
+.legal__text ul,
+.legal__text ol { margin: 0 0 10px; padding-left: 22px; }
+.legal__text li { margin-bottom: 6px; }
+.legal__text a { color: #0f4e82; text-decoration: underline; }
+.legal__text strong { color: #111111; }
+
+.legal__foot {
+  margin-top: 32px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(0, 0, 0, .14);
+  font-size: 13px;
+  line-height: 1.6;
+  color: #5b5b5b;
+}
+
+/* На печати сайт не нужен: остаётся один лист без теней и полей */
+@media print {
+  .header, .footer, .bar, .drawer, .adminbar { display: none !important; }
+  .legal { padding: 0; background: #ffffff; }
+  .legal__sheet { max-width: none; border: 0; box-shadow: none; padding: 0; }
+}
+
 /* Служебная строка подвала: владелец сайта и обязательные документы */
 .footer__legal {
   display: flex;

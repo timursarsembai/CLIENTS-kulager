@@ -97,17 +97,27 @@ $success = (string) ($block['success'] ?? 'Заявка отправлена. М
           <?php
           /*
            * Согласие отмечается галочкой, а не подразумевается текстом под
-           * кнопкой: закон требует согласия на сбор данных, и подтвердить
-           * его должно осознанное действие человека. Текст уходит вместе
-           * с заявкой — потом видно, с чем именно согласились.
+           * кнопкой: закон требует согласия на сбор данных, и подтвердить его
+           * должно осознанное действие человека.
+           *
+           * Ссылкой становится часть фразы, а не вся строка: щелчок по остальному
+           * тексту переключает саму галочку, как и положено подписи поля.
            */
-          $consent = (string) ($block['consent'] ?? 'Согласен на обработку персональных данных');
+          $consentUrl = $site->url('personalnye-dannye');
+          $consentText = (string) ($block['consent'] ?? 'Согласен с политикой обработки персональных данных');
+          $consentLink = (string) ($block['consent_link'] ?? 'политикой обработки персональных данных');
+          $at = $consentLink !== '' ? mb_strpos($consentText, $consentLink) : false;
+
+          $consentHtml = $at === false
+              ? e($consentText)
+              : e(mb_substr($consentText, 0, $at))
+                  . '<a href="' . e($consentUrl) . '" target="_blank" rel="noopener">' . e($consentLink) . '</a>'
+                  . e(mb_substr($consentText, $at + mb_strlen($consentLink)));
           ?>
           <label class="lead-form__consent lead-form__field--wide">
             <input type="checkbox" name="consent" value="1" required>
-            <input type="hidden" name="consent_text" value="<?= e($consent . ' — ' . $site->url('personalnye-dannye')) ?>">
-            <span<?= $view->editable($block, 'consent') ?>><?= e($consent) ?></span>
-            <a href="<?= e($site->url('personalnye-dannye')) ?>" target="_blank" rel="noopener"><?= e($block['consent_link'] ?? 'Политика') ?></a>
+            <input type="hidden" name="consent_text" value="<?= e($consentText . ' — ' . $consentUrl) ?>">
+            <span><?= $consentHtml ?></span>
           </label>
 
           <div class="lead-form__foot">
