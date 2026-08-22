@@ -499,17 +499,18 @@ final class PageRepository
         return ['total' => count($target), 'same' => $same];
     }
 
-    /** Публикация: снимок в историю и включение видимости на сайте. */
-    public function publish(int $pageId, string $locale, ?int $authorId, string $comment = ''): void
+    /**
+     * Публикация языковой версии.
+     *
+     * Снимок перед этим делает тот, кто правит: снимки живут в PageRevisions,
+     * и репозиторию страниц незачем знать про отмену правок.
+     */
+    public function publish(int $pageId, string $locale): void
     {
-        $this->db->transaction(function () use ($pageId, $locale, $authorId, $comment): void {
-            $this->snapshot($pageId, $locale, $authorId, $comment);
-
-            $this->db->update('page_locales', [
-                'is_published' => 1,
-                'published_at' => date('Y-m-d H:i:s'),
-            ], 'page_id = :id AND locale = :locale', ['id' => $pageId, 'locale' => $locale]);
-        });
+        $this->db->update('page_locales', [
+            'is_published' => 1,
+            'published_at' => date('Y-m-d H:i:s'),
+        ], 'page_id = :id AND locale = :locale', ['id' => $pageId, 'locale' => $locale]);
     }
 
     public function unpublish(int $pageId, string $locale): void

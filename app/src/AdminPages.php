@@ -218,7 +218,9 @@ final class AdminPages extends AdminPageSection
             return;
         }
 
-        $this->pages->publish((int) $page['id'], $locale, (int) ($this->auth->user()['id'] ?? 0) ?: null);
+        // Снимок перед публикацией: к прежнему состоянию должно быть куда вернуться
+        $this->keepUndo($page, $locale, 'публикация');
+        $this->pages->publish((int) $page['id'], $locale);
         $this->auth->log('publish', $page['page_key'] . ' / ' . $locale);
 
         $this->flash(at('Страница опубликована.'));
@@ -233,6 +235,7 @@ final class AdminPages extends AdminPageSection
             return;
         }
 
+        $this->keepUndo($page, $locale, 'снятие с публикации');
         $this->pages->unpublish((int) $page['id'], $locale);
         $this->auth->log('unpublish', $page['page_key'] . ' / ' . $locale);
 
