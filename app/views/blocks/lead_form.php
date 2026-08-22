@@ -70,6 +70,22 @@ $body = static function () use ($site, $view, $block, $sign, $sent, $error): voi
       <textarea name="message" rows="3"></textarea>
     </label>
 
+        <?php
+        /*
+         * Согласие отмечается галочкой, а не подразумевается текстом под
+         * кнопкой: закон требует согласия на сбор данных, и подтвердить
+         * его должно осознанное действие человека. Текст уходит вместе
+         * с заявкой — потом видно, с чем именно согласились.
+         */
+        $consent = (string) ($block['consent'] ?? 'Согласен на обработку персональных данных');
+        ?>
+        <label class="lead-form__consent lead-form__field--wide">
+          <input type="checkbox" name="consent" value="1" required>
+          <input type="hidden" name="consent_text" value="<?= e($consent . ' — ' . $site->url('personalnye-dannye')) ?>">
+          <span<?= $view->editable($block, 'consent') ?>><?= e($consent) ?></span>
+          <a href="<?= e($site->url('personalnye-dannye')) ?>" target="_blank" rel="noopener"><?= e($block['consent_link'] ?? 'Политика') ?></a>
+        </label>
+
     <div class="lead-form__foot">
       <button type="submit" class="btn btn--primary"<?= $view->editable($block, 'submit') ?>>
         <?= e($block['submit'] ?? 'Отправить заявку') ?>

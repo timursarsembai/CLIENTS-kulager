@@ -21,6 +21,8 @@ return [
 
     // Подвал
     'footer.tagline'    => 'Универсальная грузовая платформа.<br>Произведено в Казахстане.',
+    'footer.requisites' => 'Реквизиты',
+    'footer.privacy'    => 'Обработка персональных данных',
     'footer.contacts'   => 'Работа и адреса',
     'footer.schedule'   => 'Режим работы',
     'footer.office'     => 'Офис',

@@ -57,6 +57,15 @@ $labels = [
             <td class="nowrap">
               <?= e(date('d.m.Y H:i', strtotime((string) $lead['created_at']))) ?>
               <div class="muted">/<?= e((string) $lead['page']) ?></div>
+
+              <?php /* Согласие на обработку данных: подтверждение на случай спора */ ?>
+              <?php if (!empty($lead['consent'])): ?>
+                <div>
+                  <span class="pill pill--ok" title="<?= e((string) ($lead['consent_text'] ?? '')) ?>">
+                    <?= ate('согласие есть') ?>
+                  </span>
+                </div>
+              <?php endif; ?>
             </td>
 
             <td>

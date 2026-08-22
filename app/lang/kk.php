@@ -18,6 +18,8 @@ return [
 
     // Подвал
     'footer.tagline'    => 'Әмбебап жүк платформасы.<br>Қазақстанда өндірілген.',
+    'footer.requisites' => 'Деректемелер',
+    'footer.privacy'    => 'Дербес деректерді өңдеу',
     'footer.contacts'   => 'Жұмыс уақыты және мекенжайлар',
     'footer.schedule'   => 'Жұмыс режимі',
     'footer.office'     => 'Кеңсе',

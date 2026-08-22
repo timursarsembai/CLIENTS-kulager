@@ -88,4 +88,11 @@ $industries = $nav['industries'] ?? [];
       <?php endforeach; ?>
     </div>
   </div>
+
+  <?php /* Служебная строка: кто владеет сайтом и как обрабатываются данные */ ?>
+  <div class="footer__legal">
+    <span><?= e($site->contact('company')) ?></span>
+    <a href="<?= e($site->url('rekvizity')) ?>"><?= e($site->t('footer.requisites')) ?></a>
+    <a href="<?= e($site->url('personalnye-dannye')) ?>"><?= e($site->t('footer.privacy')) ?></a>
+  </div>
 </footer>

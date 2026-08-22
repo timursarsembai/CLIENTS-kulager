@@ -480,6 +480,41 @@ h1, h2, h3, h4, a, button, table, th, td, img, figure, figcaption, ul, li {
 .lead-form--narrow .lead-form__foot { margin-top: 4px; }
 .lead-form--narrow .btn { width: 100%; justify-content: center; }
 
+/* Служебная строка подвала: владелец сайта и обязательные документы */
+.footer__legal {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 22px;
+  align-items: center;
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 18px clamp(16px, 3vw, 32px);
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--text-4);
+}
+.footer__legal a { color: var(--text-3); }
+.footer__legal a:hover { color: var(--accent); }
+
+/* Галочка согласия: сама галочка не должна съезжать от длинного текста,
+   поэтому она в своей колонке, а текст переносится рядом. */
+.lead-form__consent {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 10px;
+  align-items: start;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--text-3);
+}
+.lead-form__consent input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+.lead-form__consent a { grid-column: 2; justify-self: start; font-size: 13px; }
+
 .hero-form__legal { margin: 10px 0 0; font-size: 12px; color: var(--text-4); }
 
 /* Полоса-фотография с показателями (электрическая версия) */
