@@ -469,6 +469,8 @@ h1, h2, h3, h4, a, button, table, th, td, img, figure, figcaption, ul, li {
 }
 
 /* В карточке поля идут в одну колонку: две в такую ширину не встают */
+/* Поля всегда в столбик: в обложке форма читается сверху вниз одним
+   движением, а рядом стоящие имя и телефон сбивают этот ход. */
 .lead-form--narrow {
   grid-template-columns: 1fr;
   gap: 12px;
@@ -477,15 +479,6 @@ h1, h2, h3, h4, a, button, table, th, td, img, figure, figcaption, ul, li {
 }
 .lead-form--narrow .lead-form__foot { margin-top: 4px; }
 .lead-form--narrow .btn { width: 100%; justify-content: center; }
-
-/* Карточка стала достаточно широкой — имя и телефон встают в строку,
-   а сообщение и кнопка остаются во всю ширину */
-@media (min-width: 1280px) {
-  .lead-form--narrow { grid-template-columns: 1fr 1fr; gap: 12px 16px; }
-  .lead-form--narrow .lead-form__field--wide,
-  .lead-form--narrow .lead-form__foot,
-  .lead-form--narrow .form-note { grid-column: 1 / -1; }
-}
 
 .hero-form__legal { margin: 10px 0 0; font-size: 12px; color: var(--text-4); }
 

@@ -77,12 +77,12 @@ $success = (string) ($block['success'] ?? 'Заявка отправлена. М
             <label>Компания<input type="text" name="company" tabindex="-1" autocomplete="off"></label>
           </div>
 
-          <label class="lead-form__field">
+          <label class="lead-form__field lead-form__field--wide">
             <span<?= $view->editable($block, 'name_label') ?>><?= e($block['name_label'] ?? 'Как к вам обращаться') ?></span>
             <input type="text" name="name" required autocomplete="name">
           </label>
 
-          <label class="lead-form__field">
+          <label class="lead-form__field lead-form__field--wide">
             <span<?= $view->editable($block, 'phone_label') ?>><?= e($block['phone_label'] ?? 'Телефон') ?></span>
             <input type="tel" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__">
           </label>
