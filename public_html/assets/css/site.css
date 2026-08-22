@@ -422,6 +422,61 @@ h1, h2, h3, h4, a, button, table, th, td, img, figure, figcaption, ul, li {
   max-width: 42ch;
 }
 
+/* ------------------------------------------------- обложка с формой заявки */
+
+/* На широком экране текст и форма стоят рядом, на узком — форма уходит вниз.
+   Ширина правой колонки задана в ch, чтобы поля не растягивались до нечитаемого. */
+.hero-form {
+  display: grid;
+  gap: clamp(28px, 4vw, 56px);
+  align-items: center;
+}
+@media (min-width: 1000px) {
+  .hero-form { grid-template-columns: minmax(0, 1fr) minmax(360px, 34ch); }
+}
+
+.hero--form .hero__lead { margin-bottom: 34px; }
+.hero--form .h1 { max-width: 18ch; }
+
+/* Карточка формы поверх фотографии: тот же приём, что у панелей на сайте —
+   полупрозрачная подложка с размытием, прямые углы, тонкая рамка. */
+.hero-form__card {
+  background: var(--overlay-card);
+  border: 1px solid var(--line-2);
+  backdrop-filter: blur(10px) saturate(130%);
+  padding: clamp(22px, 2.4vw, 32px);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .22);
+}
+
+.hero-form__head { margin-bottom: 18px; }
+
+.hero-form__title {
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: clamp(20px, 2vw, 26px);
+  line-height: 1.15;
+  color: var(--text-strong);
+}
+
+.hero-form__note {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+/* В карточке поля идут в одну колонку: две в такую ширину не встают */
+.lead-form--narrow {
+  grid-template-columns: 1fr;
+  gap: 12px;
+  margin-top: 0;
+  max-width: none;
+}
+.lead-form--narrow .lead-form__foot { margin-top: 4px; }
+.lead-form--narrow .btn { width: 100%; justify-content: center; }
+
+.hero-form__legal { margin: 10px 0 0; font-size: 12px; color: var(--text-4); }
+
 /* Полоса-фотография с показателями (электрическая версия) */
 .photo-band__stats {
   display: grid;
