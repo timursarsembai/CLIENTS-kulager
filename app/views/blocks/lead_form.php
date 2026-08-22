@@ -57,7 +57,7 @@ $body = static function () use ($site, $view, $block, $sign, $sent, $error): voi
 
     <label class="lead-form__field">
       <span<?= $view->editable($block, 'phone_label') ?>><?= e($block['phone_label'] ?? 'Телефон') ?></span>
-      <input type="tel" name="phone" autocomplete="tel" placeholder="+7 ___ ___ __ __">
+      <input type="tel" name="phone" autocomplete="tel" placeholder="+7 (___) ___-__-__">
     </label>
 
     <label class="lead-form__field">

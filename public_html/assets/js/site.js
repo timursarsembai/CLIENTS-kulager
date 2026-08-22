@@ -172,10 +172,83 @@
 (function () {
   'use strict';
 
+  /**
+   * Подсказка ввода номера: +7 (777) 123-45-67.
+   *
+   * Форматируем на лету, но поле не запираем: заявка с номером в непривычном
+   * виде лучше, чем несостоявшаяся. Номер, начатый с другого кода страны,
+   * оставляем как есть — клиенты бывают и не из Казахстана.
+   */
+  var maskPhone = function (input) {
+    var shape = function (digits) {
+      var out = '+7';
+
+      if (digits.length > 0) out += ' (' + digits.slice(0, 3);
+      if (digits.length >= 3) out += ')';
+      if (digits.length > 3) out += ' ' + digits.slice(3, 6);
+      if (digits.length > 6) out += '-' + digits.slice(6, 8);
+      if (digits.length > 8) out += '-' + digits.slice(8, 10);
+
+      return out;
+    };
+
+    /* Курсор возвращаем по числу цифр слева от него, а не по номеру символа:
+       разделители появляются и исчезают по ходу набора. */
+    var caretAfter = function (text, digitsBefore) {
+      var seen = 0;
+
+      for (var i = 0; i < text.length; i++) {
+        if (text[i] >= '0' && text[i] <= '9') {
+          seen++;
+          if (seen >= digitsBefore) return i + 1;
+        }
+      }
+
+      return text.length;
+    };
+
+    var reformat = function () {
+      var value = input.value;
+
+      // Чужой код страны не трогаем
+      if (/^\+(?!7)/.test(value)) return;
+
+      var digitsBefore = value.slice(0, input.selectionStart || 0).replace(/\D/g, '').length;
+      var digits = value.replace(/\D/g, '');
+
+      if (digits === '') {
+        input.value = '';
+
+        return;
+      }
+
+      // 8 707… и 7 707… — один и тот же номер, приводим к одному виду
+      if (digits[0] === '8' || digits[0] === '7') digits = digits.slice(1);
+
+      input.value = shape(digits.slice(0, 10));
+
+      if (input === document.activeElement) {
+        var pos = caretAfter(input.value, digitsBefore);
+        input.setSelectionRange(pos, pos);
+      }
+    };
+
+    input.addEventListener('input', reformat);
+
+    /* Ушли из поля, не введя ничего кроме кода страны, — очищаем: телефон
+       необязателен, а «+7» в заявке ничем не поможет. */
+    input.addEventListener('blur', function () {
+      if (input.value.replace(/\D/g, '').length <= 1) input.value = '';
+    });
+  };
+
+
   document.querySelectorAll('[data-lead-form]').forEach(function (form) {
     // Отмечаем момент, когда форма реально показалась посетителю
     var started = form.querySelector('[data-form-started]');
     if (started) started.value = String(Math.floor(Date.now() / 1000));
+
+    form.querySelectorAll('input[type="tel"]').forEach(maskPhone);
 
     form.addEventListener('submit', function (event) {
       event.preventDefault();
