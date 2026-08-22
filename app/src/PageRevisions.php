@@ -13,6 +13,9 @@ declare(strict_types=1);
  */
 final class PageRevisions
 {
+    /** Сколько снимков храним на языковую версию: дальше они только копятся. */
+    private const KEEP_REVISIONS = 15;
+
     public function __construct(private Db $db)
     {
     }

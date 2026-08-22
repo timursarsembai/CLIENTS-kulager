@@ -500,11 +500,6 @@ final class PageRepository
     }
 
     /** Публикация: снимок в историю и включение видимости на сайте. */
-    /* --------------------------------------------------------- снимки правок */
-
-    /** Сколько снимков храним на языковую версию: дальше они только копятся. */
-    private const KEEP_REVISIONS = 15;
-
     public function publish(int $pageId, string $locale, ?int $authorId, string $comment = ''): void
     {
         $this->db->transaction(function () use ($pageId, $locale, $authorId, $comment): void {
