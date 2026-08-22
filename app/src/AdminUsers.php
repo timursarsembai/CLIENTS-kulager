@@ -34,6 +34,17 @@ final class AdminUsers extends AdminSection
             return;
         }
 
+        /*
+         * Владелец другому администратору недоступен ни в каком действии:
+         * он для него и в списке не значится, поэтому и адрес с его id —
+         * то же самое, что несуществующий пользователь.
+         */
+        if (Auth::ownerBy((string) $user['email'], $this->config) && !$this->auth->isOwner()) {
+            $this->notFound();
+
+            return;
+        }
+
         match ($segments[1] ?? '') {
             'role'     => $this->userRole($user),
             'password' => $this->userPassword($user),
@@ -46,8 +57,11 @@ final class AdminUsers extends AdminSection
 
     private function userList(): void
     {
+        [$where, $params] = $this->hideOwners('email');
+        $sql = 'SELECT * FROM users' . ($where !== '' ? ' WHERE ' . $where : '') . ' ORDER BY role, email';
+
         $this->render('users', [
-            'users'   => $this->db->all('SELECT * FROM users ORDER BY role, email'),
+            'users'   => $this->db->all($sql, $params),
             'me'      => (int) ($this->auth->user()['id'] ?? 0),
             'created' => (array) ($_SESSION['new_user'] ?? []),
         ], 'Пользователи');

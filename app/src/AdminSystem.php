@@ -18,12 +18,16 @@ final class AdminSystem extends AdminSection
             'media'     => (int) $this->db->value('SELECT COUNT(*) FROM media', [], 0),
         ];
 
+        [$recentHide, $recentParams] = $this->hideOwners('u.email');
+
         $this->render('dashboard', [
             'stats'  => $stats,
             'recent' => $this->db->all(
                 'SELECT a.*, u.name AS user_name FROM activity_log a
-                   LEFT JOIN users u ON u.id = a.user_id
-                  ORDER BY a.created_at DESC LIMIT 10'
+                   LEFT JOIN users u ON u.id = a.user_id'
+                   . ($recentHide !== '' ? ' WHERE ' . $recentHide : '') .
+                 ' ORDER BY a.created_at DESC LIMIT 10',
+                $recentParams
             ),
         ], 'Панель');
     }
@@ -203,16 +207,25 @@ final class AdminSystem extends AdminSection
         $page = max(1, (int) ($_GET['p'] ?? 1));
         $perPage = 50;
 
+        // Действия владельца в журнале не показываем — кроме как самому владельцу
+        [$hide, $params] = $this->hideOwners('u.email');
+        $filter = $hide !== '' ? ' WHERE ' . $hide : '';
+
         $this->render('log', [
             'rows' => $this->db->all(
                 'SELECT a.*, u.name AS user_name, u.email AS user_email
                    FROM activity_log a
-                   LEFT JOIN users u ON u.id = a.user_id
-                  ORDER BY a.created_at DESC, a.id DESC
-                  LIMIT ' . $perPage . ' OFFSET ' . (($page - 1) * $perPage)
+                   LEFT JOIN users u ON u.id = a.user_id'
+                   . $filter .
+                 ' ORDER BY a.created_at DESC, a.id DESC
+                  LIMIT ' . $perPage . ' OFFSET ' . (($page - 1) * $perPage),
+                $params
             ),
             'page'  => $page,
-            'total' => (int) $this->db->value('SELECT COUNT(*) FROM activity_log', [], 0),
+            'total' => (int) $this->db->value(
+                'SELECT COUNT(*) FROM activity_log a LEFT JOIN users u ON u.id = a.user_id' . $filter,
+                $params
+            ),
             'perPage' => $perPage,
         ], 'Журнал действий');
     }

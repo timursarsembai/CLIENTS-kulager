@@ -86,6 +86,45 @@ final class Auth
     }
 
     /**
+     * Владелец проекта — окно поддержки, скрытое от сотрудников клиента.
+     *
+     * Определяется по адресу почты из config.owners, а не по роли в базе:
+     * список правится только в коде, поэтому администратор не назначит
+     * владельцем себя и не увидит, кто уже им является.
+     */
+    public function isOwner(): bool
+    {
+        return self::ownerBy((string) ($this->user()['email'] ?? ''), $this->config);
+    }
+
+    /** @param array<string,mixed> $config тот же массив, что у Auth */
+    public static function ownerBy(string $email, array $config): bool
+    {
+        $email = mb_strtolower(trim($email));
+
+        if ($email === '') {
+            return false;
+        }
+
+        foreach ((array) ($config['owners'] ?? []) as $owner) {
+            if (mb_strtolower(trim((string) $owner)) === $email) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /** Почты владельцев — чтобы их скрыть из списков и журнала. */
+    public static function ownerEmails(array $config): array
+    {
+        return array_values(array_filter(array_map(
+            static fn ($e): string => mb_strtolower(trim((string) $e)),
+            (array) ($config['owners'] ?? [])
+        )));
+    }
+
+    /**
      * Проверяет пару email/пароль и открывает сессию.
      *
      * @return string|null текст ошибки, либо null при успехе
