@@ -38,7 +38,9 @@ $body = static function () use ($site, $view, $block, $sign, $sent, $error): voi
     <p class="form-note form-note--error"><?= e($error) ?></p>
   <?php endif; ?>
 
-  <form class="lead-form" method="post" action="<?= e($site->url('zayavka')) ?>" data-lead-form>
+  <form class="lead-form" method="post" action="<?= e($site->url('zayavka')) ?>" data-lead-form
+        data-success="<?= e($block['success'] ?? 'Заявка отправлена. Мы свяжемся с вами в рабочее время.') ?>"
+        data-success-title="<?= e($block['success_title'] ?? 'Заявка принята') ?>">
     <?php /* Время открытия проставит скрипт: страница кэшируется, серверное время тут бесполезно */ ?>
     <input type="hidden" name="started" value="0" data-form-started>
     <input type="hidden" name="sign" value="<?= e($sign) ?>">

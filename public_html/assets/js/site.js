@@ -243,6 +243,46 @@
   };
 
 
+  /**
+   * Подтверждение вместо формы.
+   *
+   * Строка над формой терялась: человек только что нажал кнопку и смотрит
+   * на поля, а не выше них. Поэтому поля убираем, а на их место ставим
+   * галочку и ответ — то, ради чего он и нажимал.
+   */
+  var showDone = function (form, note) {
+    var panel = document.createElement('div');
+
+    panel.className = 'form-done';
+    panel.setAttribute('role', 'status');
+    panel.setAttribute('aria-live', 'polite');
+    panel.setAttribute('tabindex', '-1');
+
+    /* Галочка рисуется штрихом, а не появляется целиком: движение замечают
+       боковым зрением, а статичный значок — нет. */
+    panel.innerHTML =
+      '<svg class="form-done__mark" viewBox="0 0 52 52" aria-hidden="true" focusable="false">'
+      + '<circle class="form-done__circle" cx="26" cy="26" r="23" />'
+      + '<path class="form-done__check" d="M15 27.5l7.5 7.5L37.5 19" />'
+      + '</svg>'
+      + '<p class="form-done__title"></p>'
+      + '<p class="form-done__text"></p>';
+
+    panel.querySelector('.form-done__title').textContent =
+      form.getAttribute('data-success-title') || 'Заявка принята';
+    panel.querySelector('.form-done__text').textContent =
+      form.getAttribute('data-success') || 'Мы свяжемся с вами в рабочее время.';
+
+    if (note && note.parentNode) note.parentNode.removeChild(note);
+
+    form.parentNode.insertBefore(panel, form);
+    form.parentNode.removeChild(form);
+
+    /* Уводим фокус на подтверждение: тому, кто пользуется клавиатурой или
+       чтением с экрана, иначе непонятно, что произошло. */
+    panel.focus({ preventScroll: true });
+  };
+
   document.querySelectorAll('[data-lead-form]').forEach(function (form) {
     // Отмечаем момент, когда форма реально показалась посетителю
     var started = form.querySelector('[data-form-started]');
@@ -278,10 +318,7 @@
           if (button) button.disabled = false;
 
           if (data && data.ok) {
-            note.className = 'form-note form-note--ok';
-            note.textContent = form.getAttribute('data-success')
-              || 'Заявка отправлена. Мы свяжемся с вами в рабочее время.';
-            form.reset();
+            showDone(form, note);
 
             return;
           }

@@ -65,7 +65,8 @@ $success = (string) ($block['success'] ?? 'Заявка отправлена. М
         <?php endif; ?>
 
         <form class="lead-form lead-form--narrow" method="post" action="<?= e($site->url('zayavka')) ?>"
-              data-lead-form data-success="<?= e($success) ?>">
+              data-lead-form data-success="<?= e($success) ?>"
+              data-success-title="<?= e($block['success_title'] ?? 'Заявка принята') ?>">
           <?php /* Время открытия проставит скрипт: страница кэшируется, серверное время тут бесполезно */ ?>
           <input type="hidden" name="started" value="0" data-form-started>
           <input type="hidden" name="sign" value="<?= e($sign) ?>">

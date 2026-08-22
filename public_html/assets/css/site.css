@@ -577,6 +577,78 @@ h1, h2, h3, h4, a, button, table, th, td, img, figure, figcaption, ul, li {
 .footer__legal a { color: var(--text-3); }
 .footer__legal a:hover { color: var(--accent); }
 
+/* --------------------------------------------- подтверждение после отправки */
+
+/* Появляется на месте формы: поля исчезают, остаётся ответ. Строка над формой
+   для этого не годилась — человек смотрит на поля, а не выше них. */
+.form-done {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: clamp(18px, 3vw, 30px) 0;
+  text-align: center;
+  outline: none;
+  animation: form-done-in .4s ease both;
+}
+
+.form-done__mark { width: 64px; height: 64px; margin-bottom: 6px; }
+
+.form-done__circle,
+.form-done__check {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* Кольцо и галочка рисуются штрихом: длина линии равна её же периметру,
+   и мы просто убираем отступ. Движение замечают боковым зрением —
+   статичный значок посетитель пропускает так же, как строку текста. */
+.form-done__circle {
+  stroke-dasharray: 145;
+  stroke-dashoffset: 145;
+  animation: form-done-draw .45s ease-out .05s forwards;
+}
+
+.form-done__check {
+  stroke-dasharray: 36;
+  stroke-dashoffset: 36;
+  animation: form-done-draw .3s ease-out .4s forwards;
+}
+
+.form-done__title {
+  margin: 0;
+  font-family: Oswald, sans-serif;
+  font-weight: 600;
+  font-size: clamp(18px, 2vw, 22px);
+  color: var(--text-strong);
+}
+
+.form-done__text {
+  margin: 0;
+  max-width: 34ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-3);
+}
+
+@keyframes form-done-draw { to { stroke-dashoffset: 0; } }
+
+@keyframes form-done-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* Кому движение мешает — показываем сразу готовый значок */
+@media (prefers-reduced-motion: reduce) {
+  .form-done,
+  .form-done__circle,
+  .form-done__check { animation: none; }
+  .form-done__circle,
+  .form-done__check { stroke-dashoffset: 0; }
+}
+
 /* Галочка согласия: сама галочка не должна съезжать от длинного текста,
    поэтому она в своей колонке, а текст переносится рядом. */
 .lead-form__consent {
