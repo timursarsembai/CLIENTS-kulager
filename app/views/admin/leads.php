@@ -144,16 +144,39 @@ $labels = [
       <label class="field">
         <span class="field__label"><?= ate('Куда слать') ?></span>
         <input type="text" name="telegram_chat" value="<?= e((string) $telegram['chat']) ?>" placeholder="123456789">
-        <span class="field__hint"><?= ate('Идентификатор чата. Напишите боту «/start» (или добавьте его в группу) и нажмите «Определить чат».') ?></span>
+        <span class="field__hint"><?= ate('Несколько адресатов — через запятую. Обычно список набирают кнопкой «Определить чат», вручную править не нужно.') ?></span>
       </label>
 
       <button type="submit" class="btn btn--primary"><?= ate('Сохранить') ?></button>
     </form>
 
+    <?php /* Кому уходят заявки: список, а не одна строка — уведомления часто нужны нескольким */ ?>
+    <div class="chat-list">
+      <div class="field__label"><?= ate('Заявки уходят') ?></div>
+
+      <?php if ($telegram['chats'] === []): ?>
+        <p class="muted"><?= ate('Пока никуда. Напишите боту «/start» и нажмите «Определить чат».') ?></p>
+      <?php else: ?>
+        <?php foreach ($telegram['chats'] as $chat): ?>
+          <div class="chat-list__row">
+            <code><?= e($chat) ?></code>
+            <?= str_starts_with($chat, '-') ? '<span class="muted">' . ate('группа') . '</span>' : '' ?>
+
+            <form method="post" action="<?= e($admin->url('leads/drop-chat')) ?>" class="inline-form"
+                  data-confirm="<?= ate('Убрать этот чат? Заявки перестанут в него приходить.') ?>">
+              <?= Csrf::field() ?>
+              <input type="hidden" name="chat" value="<?= e($chat) ?>">
+              <button type="submit" class="link link--danger"><?= ate('Убрать') ?></button>
+            </form>
+          </div>
+        <?php endforeach; ?>
+      <?php endif; ?>
+    </div>
+
     <div class="btn-row" style="margin-top: 16px">
       <form method="post" action="<?= e($admin->url('leads/detect')) ?>">
         <?= Csrf::field() ?>
-        <button type="submit" class="btn"><?= ate('Определить чат') ?></button>
+        <button type="submit" class="btn"><?= ate('Добавить чат') ?></button>
       </form>
 
       <form method="post" action="<?= e($admin->url('leads/test')) ?>">

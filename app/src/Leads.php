@@ -144,11 +144,74 @@ final class Leads
         ], 'id = :id', ['id' => $id]);
     }
 
-    /** @return string|null текст ошибки, либо null при успехе */
+    /**
+     * Список чатов, куда уходят уведомления.
+     *
+     * Хранится одной строкой через запятую: заявки часто должны видеть
+     * несколько человек, а заводить таблицу ради пары идентификаторов
+     * незачем.
+     *
+     * @return list<string>
+     */
+    public function chats(): array
+    {
+        $raw = str_replace([';', "\n", "\r"], ',', $this->settings->get('telegram_chat', ''));
+        $out = [];
+
+        foreach (explode(',', $raw) as $chat) {
+            $chat = trim($chat);
+
+            if ($chat !== '' && !in_array($chat, $out, true)) {
+                $out[] = $chat;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * Рассылает сообщение всем адресатам.
+     *
+     * Ошибку возвращаем, только если не дошло вообще никому: одного адресата
+     * могло не быть (человек удалил чат с ботом), но остальные получили —
+     * заявку в этом случае считать непереданной неправильно.
+     *
+     * @return string|null текст ошибки, либо null если дошло хотя бы до одного
+     */
     public function send(string $text): ?string
     {
+        $chats = $this->chats();
+
+        if ($chats === []) {
+            return 'Бот не настроен: нет токена или чата.';
+        }
+
+        $errors = [];
+        $delivered = 0;
+
+        foreach ($chats as $chat) {
+            $error = $this->sendTo($chat, $text);
+
+            if ($error === null) {
+                $delivered++;
+
+                continue;
+            }
+
+            $errors[] = count($chats) > 1 ? $chat . ': ' . $error : $error;
+        }
+
+        if ($delivered > 0) {
+            return null;
+        }
+
+        return mb_substr(implode('; ', $errors), 0, 200);
+    }
+
+    /** @return string|null текст ошибки, либо null при успехе */
+    private function sendTo(string $chat, string $text): ?string
+    {
         $token = trim($this->settings->get('telegram_token', ''));
-        $chat = trim($this->settings->get('telegram_chat', ''));
 
         if ($token === '' || $chat === '') {
             return 'Бот не настроен: нет токена или чата.';

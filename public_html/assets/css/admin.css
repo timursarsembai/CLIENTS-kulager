@@ -112,6 +112,22 @@ code {
 /* Ссылка «Забыли пароль?» под кнопкой — тише самой кнопки */
 .gate__aside { margin: 14px 0 0; text-align: center; font-size: 13px; }
 
+/* ------------------------------------------------- адресаты уведомлений */
+
+.chat-list { margin-top: 20px; }
+
+.chat-list__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.chat-list__row:last-child { border-bottom: 1px solid var(--line); }
+.chat-list__row form { margin: 0; }
+.chat-list__row .link { margin-left: auto; }
+
+
 /* ------------------------------------------------------------- шапка */
 
 .topbar {

@@ -22,15 +22,16 @@ final class AdminLeads extends AdminSection
         }
 
         // Настройка уведомлений — дело администратора
-        if (in_array($head, ['telegram', 'detect', 'test'], true)) {
+        if (in_array($head, ['telegram', 'detect', 'drop-chat', 'test'], true)) {
             if (!$this->adminOnly()) {
                 return;
             }
 
             match ($head) {
-                'telegram' => $this->leadTelegram(),
-                'detect'   => $this->leadDetectChat(),
-                'test'     => $this->leadTestMessage($leads),
+                'telegram'  => $this->leadTelegram(),
+                'detect'    => $this->leadDetectChat($leads),
+                'drop-chat' => $this->leadDropChat($leads),
+                'test'      => $this->leadTestMessage($leads),
             };
 
             return;
@@ -62,6 +63,7 @@ final class AdminLeads extends AdminSection
             'telegram' => [
                 'token' => trim((string) $this->settingsValue('telegram_token')) !== '',
                 'chat'  => trim((string) $this->settingsValue('telegram_chat')),
+                'chats' => $leads->chats(),
             ],
             'isAdmin' => $this->auth->isAdmin(),
         ], 'Заявки');
@@ -152,7 +154,7 @@ final class AdminLeads extends AdminSection
      * Определяет чат по последнему сообщению боту: так не приходится искать
      * идентификатор вручную — достаточно написать боту «/start».
      */
-    private function leadDetectChat(): void
+    private function leadDetectChat(Leads $leads): void
     {
         if (!$this->isPost()) {
             $this->redirect('leads');
@@ -200,9 +202,45 @@ final class AdminLeads extends AdminSection
             return;
         }
 
-        $settings->save(['telegram_chat' => $chat]);
+        /*
+         * Добавляем к списку, а не заменяем: раньше второй администратор,
+         * нажав эту кнопку, молча переводил уведомления на себя и лишал
+         * их первого.
+         */
+        $chats = $leads->chats();
+
+        if (in_array($chat, $chats, true)) {
+            $this->flash(at('Этот чат уже в списке: %s', $chat));
+            $this->redirect('leads');
+
+            return;
+        }
+
+        $chats[] = $chat;
+        $settings->save(['telegram_chat' => implode(', ', $chats)]);
         $this->auth->log('lead_telegram_chat', $chat);
-        $this->flash(at('Чат определён: %s', $chat));
+        $this->flash(at('Чат добавлен: %s', $chat));
+        $this->redirect('leads');
+    }
+
+    /** Убирает один чат из списка — например, когда человек ушёл из компании. */
+    private function leadDropChat(Leads $leads): void
+    {
+        if (!$this->isPost()) {
+            $this->redirect('leads');
+
+            return;
+        }
+
+        $drop = trim((string) ($_POST['chat'] ?? ''));
+        $settings = new Settings($this->db, (array) $this->config['contacts']);
+        $left = array_values(array_filter($leads->chats(), static fn (string $chat): bool => $chat !== $drop));
+
+        $settings->save(['telegram_chat' => implode(', ', $left)]);
+        $this->auth->log('lead_telegram_chat_drop', $drop);
+        $this->flash($left === []
+            ? at('Список пуст — заявки больше никуда не уходят.')
+            : at('Чат убран: %s', $drop));
         $this->redirect('leads');
     }
 
